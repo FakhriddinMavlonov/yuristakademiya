@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const api = axios.create({ baseURL: '/api', withCredentials: true });
+const baseURL = process.env.VITE_API_URL || '/api';
+const api = axios.create({ baseURL, withCredentials: true });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('ya_token');
