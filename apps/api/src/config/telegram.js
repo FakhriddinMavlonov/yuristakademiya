@@ -27,6 +27,8 @@ const normalizePhone = (phone) => {
   return '+' + digits;
 };
 
+const escapeMd = (str) => String(str).replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, '\\$&');
+
 const saveMessage = async (chatId, userId, sender, messageText, messageType = 'text') => {
   try {
     await query(
@@ -166,14 +168,14 @@ const initTelegramBot = () => {
 
         // Send registration data summary
         const dataMsg =
-          `✅ *Tabriklaymiz ${state.firstName}\\!*\n\n` +
+          `✅ *Tabriklaymiz ${escapeMd(state.firstName)}\\!*\n\n` +
           `Ro'yxatdan o'tish muvaffaqiyatli yakunlandi\\.\n\n` +
           `*Sizning ma'lumotlariniz:*\n` +
-          `👤 Ism: ${state.firstName}\n` +
-          `👥 Familiya: ${state.lastName}\n` +
-          `📱 Telefon raqami: ${state.phone}\n` +
-          `📞 2\\-telefon: ${state.secondPhone}\n` +
-          `📞 3\\-telefon: ${state.thirdPhone}\n\n` +
+          `👤 Ism: ${escapeMd(state.firstName)}\n` +
+          `👥 Familiya: ${escapeMd(state.lastName)}\n` +
+          `📱 Telefon raqami: ${escapeMd(state.phone)}\n` +
+          `📞 2\\-telefon: ${escapeMd(state.secondPhone)}\n` +
+          `📞 3\\-telefon: ${escapeMd(state.thirdPhone)}\n\n` +
           `*Sizning login ma'lumotlari:*\n` +
           `👤 Foydalanuvchi nomi: \`${username}\`\n` +
           `🔐 Parol: \`${password}\``;
