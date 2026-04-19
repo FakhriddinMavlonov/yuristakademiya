@@ -153,7 +153,7 @@ const initTelegramBot = () => {
            VALUES ($1,$2,$3,$4,$5,$6,$7,'student',$8,true,true)
            RETURNING id, first_name, last_name`,
           [
-            `${username}@ya.uz`,
+            `${username}`,
             passwordHash,
             state.firstName,
             state.lastName,
