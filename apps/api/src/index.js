@@ -10,7 +10,7 @@ const app = express();
 const server = http.createServer(app);
 
 initSocket(server);
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.TELEGRAM_BOT_ENABLED === 'true') {
   initTelegramBot();
 }
 
