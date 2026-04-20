@@ -53,7 +53,18 @@ export default function StudentDetail() {
   }
 
   const score = Math.round(student.avg_score || 0);
-  const telegramUrl = student.telegram_chat_id ? `tg://user?id=${student.telegram_chat_id}` : null;
+  const handleTelegramClick = () => {
+    if (student.telegram_chat_id) {
+      const appUrl = `tg://user?id=${student.telegram_chat_id}`;
+      const webUrl = `https://t.me/?startattach=start&startapp=1&bot_id=${student.telegram_chat_id}`;
+      window.open(appUrl, '_blank');
+      setTimeout(() => {
+        if (!document.hidden) {
+          window.open(webUrl, '_blank');
+        }
+      }, 500);
+    }
+  };
 
   return (
     <div className="page" style={{ maxWidth: 900 }}>
@@ -173,10 +184,10 @@ export default function StudentDetail() {
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="btn btn-ghost" onClick={() => navigate(-1)}>← Orqaga</button>
-        {telegramUrl && (
-          <a href={telegramUrl} target="_blank" rel="noreferrer" className="btn btn-navy" style={{ textDecoration: 'none' }}>
+        {student.telegram_chat_id && (
+          <button className="btn btn-navy" onClick={handleTelegramClick}>
             💬 Telegram →
-          </a>
+          </button>
         )}
         <button className="btn btn-navy" onClick={() => navigate(`/teacher/chat/${student.id}`)}>💬 Chat →</button>
       </div>

@@ -18,7 +18,11 @@ const useStore = create((set, get) => ({
   login: (user, accessToken, refreshToken) => {
     localStorage.setItem('ya_token', accessToken);
     if (refreshToken) localStorage.setItem('ya_refresh_token', refreshToken);
-    const backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || '/';
+    let backendUrl = '/';
+    const apiUrl = import.meta.env.VITE_API_URL;
+    if (apiUrl) {
+      backendUrl = apiUrl.replace('/api', '').replace(/\/$/, '') || '/';
+    }
     const socket = io(backendUrl, { auth: { token: accessToken }, transports: ['websocket'] });
     socket.on('chat:message', () => set((s) => ({ unreadMessages: s.unreadMessages + 1 })));
     socket.on('assignment:graded', ({ score }) => get().showToast(`Uy ishi baholandi: ${score} ball`));

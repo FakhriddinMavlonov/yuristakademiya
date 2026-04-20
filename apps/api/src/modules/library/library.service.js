@@ -29,9 +29,10 @@ const upload = async (teacherId, data) => {
 const uploadFile = async (teacherId, fileBuffer, fileName, fileType) => {
   const ext = path.extname(fileName).substring(1).toLowerCase();
   const guid = `lib_${teacherId}_${Date.now()}.${ext}`;
-  const fileUrl = `https://${process.env.BUNNY_HOSTNAME}/${process.env.BUNNY_STORAGE_ZONE}/library/${guid}`;
+  const uploadUrl = `https://${process.env.BUNNY_HOSTNAME}/${process.env.BUNNY_STORAGE_ZONE}/library/${guid}`;
+  const publicUrl = `${process.env.BUNNY_CDN_URL}/library/${guid}`;
 
-  await axios.put(fileUrl, fileBuffer, {
+  await axios.put(uploadUrl, fileBuffer, {
     headers: {
       AccessKey: process.env.BUNNY_API_KEY,
       'Content-Type': 'application/octet-stream',
@@ -41,7 +42,7 @@ const uploadFile = async (teacherId, fileBuffer, fileName, fileType) => {
   const { rows: [item] } = await query(`
     INSERT INTO library_items (name, type, file_url, file_type, file_size_bytes, uploaded_by)
     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *
-  `, [fileName.replace(/\.[^.]+$/, ''), fileType, fileUrl, ext, fileBuffer.length, teacherId]);
+  `, [fileName.replace(/\.[^.]+$/, ''), fileType, publicUrl, ext, fileBuffer.length, teacherId]);
 
   return item;
 };
