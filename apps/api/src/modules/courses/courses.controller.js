@@ -34,4 +34,8 @@ const teacherStudents = async (req, res, next) => {
   try { res.json(await svc.getTeacherStudents(req.user.id)); } catch (e) { next(e); }
 };
 
-module.exports = { list, get, create, update, uploadIntroVideo, remove, enroll, studentStats, teacherStudents };
+const studentDetail = async (req, res, next) => {
+  try { res.json(await svc.getStudentDetail(req.params.studentId, req.user.id)); } catch (e) { next(e); }
+};
+
+module.exports = { list, get, create, update, uploadIntroVideo, remove, enroll, studentStats, teacherStudents, studentDetail };

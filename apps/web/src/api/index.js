@@ -78,6 +78,7 @@ export const auth = {
 export const courses = {
   list: () => api.get('/courses'),
   myStudents: () => api.get('/courses/teacher/my-students'),
+  studentDetail: (studentId) => api.get(`/courses/teacher/student/${studentId}`),
   get: (id) => api.get(`/courses/${id}`),
   create: (d) => api.post('/courses', d),
   update: (id, d) => api.patch(`/courses/${id}`, d),

@@ -111,6 +111,39 @@ const studentStats = async (courseId, teacherId) => {
   return rows;
 };
 
+const getStudentDetail = async (studentId, teacherId) => {
+  const { rows: [student] } = await query(`
+    SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.telegram_chat_id,
+      u.second_phone, u.third_phone, u.is_active, u.created_at,
+      COUNT(DISTINCT lp.lesson_id) FILTER (WHERE lp.is_completed) ::int AS completed_lessons,
+      COUNT(DISTINCT l.id)::int AS total_lessons,
+      ROUND(AVG(ta.score_pct) FILTER (WHERE ta.submitted_at IS NOT NULL), 1) AS avg_score
+    FROM users u
+    LEFT JOIN enrollments e ON e.user_id = u.id
+    LEFT JOIN courses c ON c.id = e.course_id AND c.teacher_id = $2
+    LEFT JOIN lessons l ON l.course_id = c.id
+    LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id AND lp.user_id = u.id
+    LEFT JOIN tests t ON t.lesson_id = l.id
+    LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ta.user_id = u.id
+    WHERE u.id = $1
+    GROUP BY u.id
+  `, [studentId, teacherId]);
+  if (!student) throw new AppError('Student not found', 404);
+
+  const { rows: attempts } = await query(`
+    SELECT ta.id, ta.test_id, ta.score_pct, ta.submitted_at, t.lesson_id, l.title AS lesson_title
+    FROM test_attempts ta
+    JOIN tests t ON t.id = ta.test_id
+    JOIN lessons l ON l.id = t.lesson_id
+    JOIN courses c ON c.id = l.course_id AND c.teacher_id = $2
+    WHERE ta.user_id = $1 AND ta.submitted_at IS NOT NULL
+    ORDER BY ta.submitted_at DESC
+    LIMIT 20
+  `, [studentId, teacherId]);
+
+  return { ...student, test_attempts: attempts };
+};
+
 const getTeacherStudents = async (teacherId) => {
   const { rows } = await query(`
     SELECT DISTINCT ON (u.id)
@@ -163,4 +196,4 @@ const remove = async (id, teacherId) => {
   });
 };
 
-module.exports = { list, get, create, update, uploadIntroVideo, remove, enroll, studentStats, getTeacherStudents };
+module.exports = { list, get, create, update, uploadIntroVideo, remove, enroll, studentStats, getTeacherStudents, getStudentDetail };
