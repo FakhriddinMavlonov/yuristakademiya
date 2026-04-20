@@ -30,4 +30,8 @@ const remove = async (req, res, next) => {
   try { res.json(await svc.remove(req.params.id, req.user.id)); } catch (e) { next(e); }
 };
 
-module.exports = { list, get, create, update, uploadIntroVideo, remove, enroll, studentStats };
+const teacherStudents = async (req, res, next) => {
+  try { res.json(await svc.getTeacherStudents(req.user.id)); } catch (e) { next(e); }
+};
+
+module.exports = { list, get, create, update, uploadIntroVideo, remove, enroll, studentStats, teacherStudents };

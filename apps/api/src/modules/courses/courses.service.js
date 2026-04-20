@@ -111,6 +111,29 @@ const studentStats = async (courseId, teacherId) => {
   return rows;
 };
 
+const getTeacherStudents = async (teacherId) => {
+  const { rows } = await query(`
+    SELECT DISTINCT ON (u.id)
+      u.id, u.first_name, u.last_name, u.phone, u.email, u.is_active,
+      u.created_at AS registered_at,
+      c.title AS course_title, c.id AS course_id,
+      COUNT(DISTINCT lp.lesson_id) FILTER (WHERE lp.is_completed) ::int AS completed_lessons,
+      COUNT(DISTINCT l.id)::int AS total_lessons,
+      ROUND(AVG(ta.score_pct) FILTER (WHERE ta.submitted_at IS NOT NULL), 1) AS avg_score,
+      MAX(lp.updated_at) AS last_activity
+    FROM enrollments e
+    JOIN users u ON u.id = e.user_id
+    JOIN courses c ON c.id = e.course_id AND c.teacher_id = $1
+    LEFT JOIN lessons l ON l.course_id = c.id
+    LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id AND lp.user_id = u.id
+    LEFT JOIN tests t ON t.lesson_id = l.id
+    LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ta.user_id = u.id
+    GROUP BY u.id, c.id
+    ORDER BY u.id, last_activity DESC NULLS LAST
+  `, [teacherId]);
+  return rows;
+};
+
 const remove = async (id, teacherId) => {
   return transaction(async (client) => {
     const { rows: [course] } = await client.query('SELECT id FROM courses WHERE id=$1 AND teacher_id=$2', [id, teacherId]);
@@ -140,4 +163,4 @@ const remove = async (id, teacherId) => {
   });
 };
 
-module.exports = { list, get, create, update, uploadIntroVideo, remove, enroll, studentStats };
+module.exports = { list, get, create, update, uploadIntroVideo, remove, enroll, studentStats, getTeacherStudents };

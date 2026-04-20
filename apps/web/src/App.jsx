@@ -15,6 +15,7 @@ import Homework from './pages/teacher/Homework';
 import Library from './pages/teacher/Library';
 import Meetings from './pages/teacher/Meetings';
 import TeacherJoinMeeting from './pages/teacher/TeacherJoinMeeting';
+import TeacherStudents from './pages/teacher/Students';
 import StudentDetail from './pages/teacher/StudentDetail';
 import TeacherChat from './pages/teacher/Chat';
 
@@ -71,6 +72,8 @@ export default function App() {
           <Route path="lessons/:lessonId/test" element={<TestEditor />} />
           <Route path="homework" element={<Homework />} />
           <Route path="library" element={<Library />} />
+          <Route path="students" element={<TeacherStudents />} />
+          <Route path="students/:studentId" element={<StudentDetail />} />
           <Route path="meetings" element={<Meetings />} />
           <Route path="meetings/:meetingId/student/:studentId" element={<StudentDetail />} />
           <Route path="chat/:studentId" element={<TeacherChat />} />

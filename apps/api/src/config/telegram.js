@@ -166,6 +166,12 @@ const initTelegramBot = () => {
 
         delete userRegistrationState[userId];
 
+        // Link all previous messages from this chat to the new user
+        await query(
+          'UPDATE telegram_messages SET user_id=$1 WHERE telegram_chat_id=$2 AND user_id IS NULL',
+          [newUser.id, chatId.toString()]
+        );
+
         // Send registration data summary
         const dataMsg =
           `✅ *Tabriklaymiz ${escapeMd(state.firstName)}\\!*\n\n` +

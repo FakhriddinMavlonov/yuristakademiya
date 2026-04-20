@@ -5,6 +5,7 @@ import useStore from '../../store/useStore';
 const teacherNav = [
   { to: '/teacher', icon: '🏠', label: 'Dashboard', end: true },
   { to: '/teacher/courses', icon: '📚', label: 'Kurslar' },
+  { to: '/teacher/students', icon: '👥', label: "O'quvchilarim" },
   { to: '/teacher/homework', icon: '✅', label: 'Uy ishlari', badge: 'hw' },
   { to: '/teacher/library', icon: '📁', label: 'Kutubxona' },
   { to: '/teacher/meetings', icon: '📅', label: 'Meetinglar' },
