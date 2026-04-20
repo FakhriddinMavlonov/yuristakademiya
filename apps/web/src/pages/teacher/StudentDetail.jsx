@@ -53,7 +53,7 @@ export default function StudentDetail() {
   }
 
   const score = Math.round(student.avg_score || 0);
-  const telegramUrl = student.telegram_chat_id ? `https://t.me/${student.telegram_chat_id}` : null;
+  const telegramUrl = student.telegram_chat_id ? `tg://user?id=${student.telegram_chat_id}` : null;
 
   return (
     <div className="page" style={{ maxWidth: 900 }}>

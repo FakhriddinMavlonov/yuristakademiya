@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { library as libraryApi } from '../../api';
 import Modal from '../../components/ui/Modal';
+import LibraryViewer from '../../components/library/LibraryViewer';
 import useStore from '../../store/useStore';
 
 const TYPE_ICONS = { material: '📄', test: '🎯', video: '🎥', sample: '📝' };
@@ -14,6 +15,7 @@ export default function Library() {
   const [form, setForm] = useState({ name: '', type: 'material', fileUrl: '', fileType: '' });
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [viewingItem, setViewingItem] = useState(null);
   const { showToast } = useStore();
 
   const load = () => {
@@ -78,7 +80,7 @@ export default function Library() {
             <div className="lib-name">{item.name}</div>
             <div className="lib-meta">{item.type} · {item.course_title || 'Umumiy'}</div>
             <div style={{ display: 'flex', gap: 4, marginTop: 10 }}>
-              <a href={item.file_url} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm">Ko'rish</a>
+              <button onClick={() => setViewingItem(item)} className="btn btn-ghost btn-sm">Ko'rish</button>
               <button className="btn btn-red btn-sm" onClick={() => remove(item.id)}>O'chirish</button>
             </div>
           </div>
@@ -144,6 +146,8 @@ export default function Library() {
           <input className="finput" placeholder="https://..." value={form.fileUrl} onChange={(e) => setForm({ ...form, fileUrl: e.target.value })} />
         </div>
       </Modal>
+
+      <LibraryViewer item={viewingItem} onClose={() => setViewingItem(null)} />
     </div>
   );
 }
