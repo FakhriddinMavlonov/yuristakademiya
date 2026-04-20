@@ -12,6 +12,8 @@ export default function Library() {
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({ name: '', type: 'material', fileUrl: '', fileType: '' });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const { showToast } = useStore();
 
   const load = () => {
@@ -23,11 +25,28 @@ export default function Library() {
 
   const upload = async () => {
     try {
-      const item = await libraryApi.upload(form);
+      setUploading(true);
+      let item;
+
+      if (selectedFile) {
+        item = await libraryApi.uploadFile(selectedFile, form.type);
+      } else if (form.fileUrl) {
+        item = await libraryApi.upload(form);
+      } else {
+        showToast('Fayl yoki URL ni tanlang');
+        return;
+      }
+
       setItems((p) => [item, ...p]);
       setModal(false);
+      setForm({ name: '', type: 'material', fileUrl: '', fileType: '' });
+      setSelectedFile(null);
       showToast('Kutubxonaga yuklandi!');
-    } catch { showToast('Xatolik!'); }
+    } catch (e) {
+      showToast('Xatolik: ' + (e.message || 'Noma\'lum xatolik'));
+    } finally {
+      setUploading(false);
+    }
   };
 
   const remove = async (id) => {
@@ -70,16 +89,12 @@ export default function Library() {
         </div>
       </div>
 
-      <Modal open={modal} onClose={() => setModal(false)} title="Kutubxonaga yuklash" icon="📁"
+      <Modal open={modal} onClose={() => { setModal(false); setSelectedFile(null); }} title="Kutubxonaga yuklash" icon="📁"
         footer={<>
-          <button className="btn btn-ghost" onClick={() => setModal(false)}>Bekor</button>
-          <button className="btn btn-navy" onClick={upload}>Yuklash</button>
+          <button className="btn btn-ghost" onClick={() => { setModal(false); setSelectedFile(null); }}>Bekor</button>
+          <button className="btn btn-navy" onClick={upload} disabled={uploading}>{uploading ? 'Yuklanmoqda...' : 'Yuklash'}</button>
         </>}
       >
-        <div className="fgroup">
-          <div className="flabel">Fayl nomi</div>
-          <input className="finput" placeholder="Masalan: Fuqarolik kodeksi 2024" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        </div>
         <div className="fgroup">
           <div className="flabel">Tur</div>
           <select className="finput" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
@@ -89,14 +104,44 @@ export default function Library() {
             <option value="sample">Namuna</option>
           </select>
         </div>
-        <div className="fgroup">
-          <div className="flabel">Fayl URL (Bunny.net yoki boshqa)</div>
-          <input className="finput" placeholder="https://..." value={form.fileUrl} onChange={(e) => setForm({ ...form, fileUrl: e.target.value })} />
+
+        <div style={{ marginBottom: 16 }}>
+          <div className="flabel" style={{ marginBottom: 8 }}>Fayl yuklash</div>
+          <div
+            className="upload-zone"
+            onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.background = 'var(--bg)'; }}
+            onDragLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.background = 'transparent';
+              if (e.dataTransfer.files[0]) {
+                setSelectedFile(e.dataTransfer.files[0]);
+              }
+            }}
+            style={{ cursor: 'pointer', transition: 'background .2s' }}
+          >
+            <input
+              type="file"
+              id="file-input"
+              style={{ display: 'none' }}
+              onChange={(e) => e.target.files?.[0] && setSelectedFile(e.target.files[0])}
+              accept=".pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.txt,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov,.webm"
+            />
+            <label htmlFor="file-input" style={{ cursor: 'pointer', display: 'block' }}>
+              <div style={{ fontSize: 24, marginBottom: 6 }}>📁</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)' }}>
+                {selectedFile ? selectedFile.name : 'Faylni bu yerga tashlang yoki bosing'}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 3 }}>
+                PDF, DOCX, PPTX, XLS, MP4, PNG, JPG va boshqalar qo'llab-quvvatlanadi (max 500MB)
+              </div>
+            </label>
+          </div>
         </div>
-        <div className="upload-zone">
-          <div style={{ fontSize: 24, marginBottom: 6 }}>📁</div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)' }}>Faylni bu yerga tashlang yoki bosing</div>
-          <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 3 }}>PDF, DOCX, PPTX, MP4 qo'llab-quvvatlanadi</div>
+
+        <div style={{ paddingTop: 12, borderTop: '1px solid var(--line)', marginBottom: 16 }}>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8, fontWeight: 600 }}>yoki URL orqali</div>
+          <input className="finput" placeholder="https://..." value={form.fileUrl} onChange={(e) => setForm({ ...form, fileUrl: e.target.value })} />
         </div>
       </Modal>
     </div>

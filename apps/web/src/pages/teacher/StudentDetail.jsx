@@ -173,6 +173,11 @@ export default function StudentDetail() {
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="btn btn-ghost" onClick={() => navigate(-1)}>← Orqaga</button>
+        {telegramUrl && (
+          <a href={telegramUrl} target="_blank" rel="noreferrer" className="btn btn-navy" style={{ textDecoration: 'none' }}>
+            💬 Telegram →
+          </a>
+        )}
         <button className="btn btn-navy" onClick={() => navigate(`/teacher/chat/${student.id}`)}>💬 Chat →</button>
       </div>
     </div>

@@ -1,5 +1,7 @@
 const { query } = require('../../config/db');
 const { AppError } = require('../../middleware/errorHandler');
+const axios = require('axios');
+const path = require('path');
 
 const list = async (teacherId, { type, courseId, search } = {}) => {
   let sql = `SELECT li.*, u.first_name||' '||u.last_name AS uploader_name, c.title AS course_title
@@ -24,10 +26,30 @@ const upload = async (teacherId, data) => {
   return rows[0];
 };
 
+const uploadFile = async (teacherId, fileBuffer, fileName, fileType) => {
+  const ext = path.extname(fileName).substring(1).toLowerCase();
+  const guid = `lib_${teacherId}_${Date.now()}.${ext}`;
+  const fileUrl = `https://${process.env.BUNNY_HOSTNAME}/${process.env.BUNNY_STORAGE_ZONE}/library/${guid}`;
+
+  await axios.put(fileUrl, fileBuffer, {
+    headers: {
+      AccessKey: process.env.BUNNY_API_KEY,
+      'Content-Type': 'application/octet-stream',
+    },
+  });
+
+  const { rows: [item] } = await query(`
+    INSERT INTO library_items (name, type, file_url, file_type, file_size_bytes, uploaded_by)
+    VALUES ($1,$2,$3,$4,$5,$6) RETURNING *
+  `, [fileName.replace(/\.[^.]+$/, ''), fileType, fileUrl, ext, fileBuffer.length, teacherId]);
+
+  return item;
+};
+
 const remove = async (id, teacherId) => {
   const { rows } = await query('DELETE FROM library_items WHERE id=$1 AND uploaded_by=$2 RETURNING id', [id, teacherId]);
   if (!rows[0]) throw new AppError('Not found', 404);
   return { deleted: true };
 };
 
-module.exports = { list, upload, remove };
+module.exports = { list, upload, uploadFile, remove };

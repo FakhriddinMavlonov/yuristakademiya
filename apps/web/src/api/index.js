@@ -151,6 +151,12 @@ export const meetings = {
 export const library = {
   list: (params) => api.get('/library', { params }),
   upload: (d) => api.post('/library', d),
+  uploadFile: (file, fileType) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('fileType', fileType);
+    return api.post('/library/file', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
   remove: (id) => api.delete(`/library/${id}`),
 };
 
