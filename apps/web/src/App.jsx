@@ -36,6 +36,8 @@ import AdminMessages from './pages/admin/Messages';
 import AdminPayments from './pages/admin/Payments';
 import AdminSalaries from './pages/admin/Salaries';
 
+import NotFound from './pages/NotFound';
+
 const ProtectedRoute = ({ children, roles }) => {
   const { user } = useStore();
   if (!user) return <Navigate to="/login" replace />;
@@ -119,7 +121,7 @@ export default function App() {
         </Route>
 
         <Route path="/" element={<Navigate to={defaultPath} replace />} />
-        <Route path="*" element={<Navigate to={defaultPath} replace />} />
+        <Route path="*" element={user ? <NotFound /> : <Navigate to="/login" replace />} />
       </Routes>
     </>
   );
