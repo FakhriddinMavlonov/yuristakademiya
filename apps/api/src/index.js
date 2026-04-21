@@ -6,20 +6,26 @@ const { initSocket } = require('./config/socket');
 const { initTelegramBot } = require('./config/telegram');
 const { errorHandler } = require('./middleware/errorHandler');
 
+const path = require('path');
+
 const app = express();
 const server = http.createServer(app);
 
+// SOCKET + BOT
 initSocket(server);
 if (process.env.TELEGRAM_BOT_ENABLED === 'true') {
   initTelegramBot();
 }
 
+// MIDDLEWARE
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// HEALTH
 app.get('/health', (_, res) => res.json({ ok: true, ts: new Date() }));
 
+// API ROUTES
 app.use('/api/auth', require('./modules/auth/auth.routes'));
 app.use('/api/courses', require('./modules/courses/courses.routes'));
 app.use('/api/courses/:courseId/lessons', require('./modules/lessons/lessons.routes'));
@@ -31,6 +37,7 @@ app.use('/api/library', require('./modules/library/library.routes'));
 app.use('/api/chat', require('./modules/chat/chat.routes'));
 app.use('/api/admin', require('./modules/admin/admin.routes'));
 
+// 👉 ERROR HANDLER (HAMMASIDAN KEYIN)
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;
