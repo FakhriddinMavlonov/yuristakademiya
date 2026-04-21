@@ -112,12 +112,12 @@ export default function StudentDetail() {
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{student.third_phone}</div>
               </div>
             )}
-            {telegramUrl && (
+            {student.telegram_chat_id && (
               <div style={{ gridColumn: '1 / -1' }}>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Telegram</div>
-                <a href={telegramUrl} target="_blank" rel="noreferrer" style={{ fontSize: 14, fontWeight: 600, color: '#0088cc', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <button onClick={handleTelegramClick} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#0088cc', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <span>💬</span> Telegram ga o'tish
-                </a>
+                </button>
               </div>
             )}
           </div>

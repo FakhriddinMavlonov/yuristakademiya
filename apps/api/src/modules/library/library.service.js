@@ -3,6 +3,14 @@ const { AppError } = require('../../middleware/errorHandler');
 const axios = require('axios');
 const path = require('path');
 
+const toPublicUrl = (url) => {
+  if (!url) return url;
+  if (url.includes('storage.bunnycdn.com') && process.env.BUNNY_CDN_URL) {
+    return url.replace(/^https?:\/\/[^/]*storage\.bunnycdn\.com\/[^/]+/, process.env.BUNNY_CDN_URL.replace(/\/$/, ''));
+  }
+  return url;
+};
+
 const list = async (teacherId, { type, courseId, search } = {}) => {
   let sql = `SELECT li.*, u.first_name||' '||u.last_name AS uploader_name, c.title AS course_title
     FROM library_items li
@@ -15,7 +23,7 @@ const list = async (teacherId, { type, courseId, search } = {}) => {
   if (search) { sql += ` AND li.name ILIKE $${params.length + 1}`; params.push(`%${search}%`); }
   sql += ' ORDER BY li.created_at DESC';
   const { rows } = await query(sql, params);
-  return rows;
+  return rows.map((r) => ({ ...r, file_url: toPublicUrl(r.file_url) }));
 };
 
 const upload = async (teacherId, data) => {
