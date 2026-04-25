@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { io } from "socket.io-client";
+import i18n from "../i18n";
 
 const useStore = create((set, get) => ({
   user: null,
@@ -7,12 +8,26 @@ const useStore = create((set, get) => ({
   socket: null,
   toast: null,
   unreadMessages: 0,
+  theme: localStorage.getItem("ya_theme") || "light",
+  language: localStorage.getItem("ya_lang") || "uz",
 
   setUser: (user) => set({ user }),
 
   setToken: (token) => {
     localStorage.setItem("ya_token", token);
     set({ token });
+  },
+
+  setTheme: (theme) => {
+    localStorage.setItem("ya_theme", theme);
+    document.documentElement.setAttribute("data-theme", theme);
+    set({ theme });
+  },
+
+  setLanguage: (lang) => {
+    localStorage.setItem("ya_lang", lang);
+    i18n.changeLanguage(lang);
+    set({ language: lang });
   },
 
   login: (user, accessToken, refreshToken) => {
@@ -31,13 +46,13 @@ const useStore = create((set, get) => ({
       set((s) => ({ unreadMessages: s.unreadMessages + 1 })),
     );
     socket.on("assignment:graded", ({ score }) =>
-      get().showToast(`Uy ishi baholandi: ${score} ball`),
+      get().showToast(i18n.t("toast.homeworkGraded", { score })),
     );
     socket.on("meeting:scheduled", () =>
-      get().showToast("Yangi meeting rejalashtirildi!"),
+      get().showToast(i18n.t("toast.newMeeting")),
     );
     socket.on("meeting:started", () =>
-      get().showToast("Meeting boshlandi! Kiring."),
+      get().showToast(i18n.t("toast.meetingStarted")),
     );
     set({ user, token: accessToken, socket });
   },

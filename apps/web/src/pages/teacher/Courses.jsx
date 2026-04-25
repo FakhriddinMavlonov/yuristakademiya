@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { courses as coursesApi } from '../../api';
 import useStore from '../../store/useStore';
+import { SkeletonGrid } from '../../components/ui/Loading';
 
 const GRADIENTS = [
   'linear-gradient(135deg,#0C1A52,#1E2D8A)',
@@ -14,72 +16,89 @@ const GRADIENTS = [
   'linear-gradient(135deg,#0D3B2E,#1A7A5E)',
 ];
 
-const LEVEL_LABELS = { beginner: 'Boshlang\'ich', intermediate: 'O\'rta', advanced: 'Yuqori' };
 const LEVEL_COLORS = { beginner: 'pill-green', intermediate: 'pill-blue', advanced: 'pill-amber' };
 
 export default function TeacherCourses() {
   const [list, setList] = useState([]);
   const [tab, setTab] = useState('list');
   const [editTarget, setEditTarget] = useState(null);
-  const [form, setForm] = useState({
-    title: '', description: '', category: 'Fuqarolik huquqi',
-    level: 'beginner', status: 'draft',
-    banner_gradient: GRADIENTS[0],
-  });
+  const [form, setForm] = useState({ title: '', description: '', category: '', level: 'beginner', status: 'draft', banner_gradient: GRADIENTS[0] });
   const { showToast } = useStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
-  useEffect(() => { coursesApi.list().then(setList).catch(() => {}); }, []);
+  const defaultCategory = t('teacher.courses.categories.civil');
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    coursesApi.list().then(d => { setList(d); setLoading(false); }).catch(() => setLoading(false));
+    setForm(f => ({ ...f, category: defaultCategory }));
+  }, []);
 
   const openCreate = () => {
     setEditTarget(null);
-    setForm({ title: '', description: '', category: 'Fuqarolik huquqi', level: 'beginner', status: 'draft', banner_gradient: GRADIENTS[0] });
+    setForm({ title: '', description: '', category: defaultCategory, level: 'beginner', status: 'draft', banner_gradient: GRADIENTS[0] });
     setTab('create');
   };
 
   const openEdit = (e, c) => {
     e.stopPropagation();
     setEditTarget(c);
-    setForm({ title: c.title, description: c.description || '', category: c.category || 'Fuqarolik huquqi', level: c.level || 'beginner', status: c.status, banner_gradient: c.banner_gradient || GRADIENTS[0] });
+    setForm({ title: c.title, description: c.description || '', category: c.category || defaultCategory, level: c.level || 'beginner', status: c.status, banner_gradient: c.banner_gradient || GRADIENTS[0] });
     setTab('create');
   };
 
   const deleteCourse = async (e, id) => {
     e.stopPropagation();
-    if (!window.confirm('Kursni o\'chirmoqchimisiz? Bu amalni qaytarib bo\'lmaydi.')) return;
+    if (!window.confirm(t('teacher.courses.deleteConfirm'))) return;
     try {
       await coursesApi.remove(id);
       setList((p) => p.filter((c) => c.id !== id));
-      showToast('Kurs o\'chirildi');
-    } catch { showToast('O\'chirishda xatolik!'); }
+      showToast(t('teacher.courses.deleted'));
+    } catch { showToast(t('teacher.courses.deleteError')); }
   };
 
   const submit = async (status) => {
-    if (!form.title.trim()) return showToast('Kurs nomini kiriting');
+    if (!form.title.trim()) return showToast(t('teacher.courses.enterName'));
     try {
       if (editTarget) {
         const updated = await coursesApi.update(editTarget.id, { ...form, status });
         setList((p) => p.map((c) => c.id === editTarget.id ? { ...c, ...updated } : c));
-        showToast('Kurs yangilandi!');
+        showToast(t('teacher.courses.updated'));
       } else {
         const c = await coursesApi.create({ ...form, status });
         setList((p) => [c, ...p]);
-        showToast(status === 'published' ? 'Kurs nashr etildi!' : 'Qoralama saqlandi!');
+        showToast(status === 'published' ? t('teacher.courses.publishedMsg') : t('teacher.courses.draftSaved'));
       }
       setTab('list');
       setEditTarget(null);
-    } catch { showToast('Xatolik!'); }
+    } catch { showToast(t('common.error')); }
   };
+
+  const categories = [
+    t('teacher.courses.categories.civil'),
+    t('teacher.courses.categories.criminal'),
+    t('teacher.courses.categories.labor'),
+    t('teacher.courses.categories.tax'),
+    t('teacher.courses.categories.admin'),
+    t('teacher.courses.categories.international'),
+    t('teacher.courses.categories.business'),
+  ];
+
+  if (loading) return (
+    <div className="page"><SkeletonGrid count={6} minWidth={280} /></div>
+  );
 
   return (
     <div className="page">
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         <div className="tabs">
           <button className={`tab${tab === 'list' ? ' active' : ''}`} onClick={() => setTab('list')}>
-            Kurslar ro'yxati
+            {t('teacher.courses.listTab')}
           </button>
           <button className={`tab${tab === 'create' ? ' active' : ''}`} onClick={openCreate}>
-            + Yangi kurs
+            {t('teacher.courses.createTab')}
           </button>
         </div>
       </div>
@@ -89,8 +108,8 @@ export default function TeacherCourses() {
           {list.length === 0 && (
             <div style={{ textAlign: 'center', padding: 60, color: 'var(--hint)' }}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>📚</div>
-              <div style={{ fontSize: 14, marginBottom: 16 }}>Hali kurs yaratilmagan</div>
-              <button className="btn btn-navy" onClick={openCreate}>+ Birinchi kursni yarating</button>
+              <div style={{ fontSize: 14, marginBottom: 16 }}>{t('teacher.courses.noCoursesYet')}</div>
+              <button className="btn btn-navy" onClick={openCreate}>{t('teacher.courses.createFirst')}</button>
             </div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
@@ -102,16 +121,16 @@ export default function TeacherCourses() {
                   <div className="cc-banner" style={{ background: c.banner_gradient || GRADIENTS[0] }}>
                     <div style={{ position: 'absolute', top: 10, right: 10 }}>
                       <span className={`pill ${c.status === 'published' ? 'pill-green' : 'pill-amber'}`}>
-                        {c.status === 'published' ? 'Nashr etilgan' : 'Qoralama'}
+                        {c.status === 'published' ? t('status.published') : t('status.draft')}
                       </span>
                     </div>
                     <div style={{ color: '#fff', zIndex: 1, position: 'relative' }}>
                       <div style={{ fontSize: 10, opacity: .6, marginBottom: 3 }}>
-                        {c.enrolled_count || 0} o'quvchi · {c.lesson_count || 0} dars
+                        {c.enrolled_count || 0} {t('common.students')} · {c.lesson_count || 0} {t('common.lessons')}
                       </div>
                       <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>{c.title}</div>
                       <span className={`pill ${LEVEL_COLORS[c.level] || 'pill-blue'}`} style={{ marginTop: 6, display: 'inline-block', fontSize: 10 }}>
-                        {LEVEL_LABELS[c.level] || c.level}
+                        {t(`levels.${c.level}`) || c.level}
                       </span>
                     </div>
                   </div>
@@ -122,19 +141,19 @@ export default function TeacherCourses() {
                       </div>
                     )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
-                      <span style={{ color: 'var(--muted)' }}>O'rtacha natija</span>
+                      <span style={{ color: 'var(--muted)' }}>{t('teacher.courses.avgResult')}</span>
                       <span style={{ fontWeight: 700, color: scoreColor }}>{score ? `${score}%` : '—'}</span>
                     </div>
                     <div className="pb-wrap"><div className="pb-fill" style={{ width: `${score}%`, background: scoreColor }} /></div>
                     <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
                       <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); navigate(`/teacher/courses/${c.id}/lessons`); }}>
-                        Darslar
+                        {t('teacher.courses.lessonsBtn')}
                       </button>
                       <button className="btn btn-ghost btn-sm" onClick={(e) => openEdit(e, c)}>
-                        Tahrirlash
+                        {t('teacher.courses.editBtn')}
                       </button>
                       <button className="btn btn-red btn-sm" onClick={(e) => deleteCourse(e, c.id)}>
-                        O'chirish
+                        {t('teacher.courses.deleteBtn')}
                       </button>
                     </div>
                   </div>
@@ -149,25 +168,25 @@ export default function TeacherCourses() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
           <div className="card">
             <div className="card-hd">
-              <h3>{editTarget ? 'Kursni tahrirlash' : 'Yangi kurs yaratish'}</h3>
+              <h3>{editTarget ? t('teacher.courses.editTitle') : t('teacher.courses.createTitle')}</h3>
             </div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div className="fgroup">
-                <div className="flabel">Kurs nomi *</div>
+                <div className="flabel">{t('teacher.courses.nameLabel')}</div>
                 <input
                   className="finput"
-                  placeholder="Masalan: Fuqarolik huquqi asoslari"
+                  placeholder={t('teacher.courses.namePlaceholder')}
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                 />
               </div>
 
               <div className="fgroup">
-                <div className="flabel">Tavsif</div>
+                <div className="flabel">{t('teacher.courses.descLabel')}</div>
                 <textarea
                   className="finput"
                   rows={4}
-                  placeholder="Kurs nima haqida? O'quvchilar nimani o'rganadi?"
+                  placeholder={t('teacher.courses.descPlaceholder')}
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                 />
@@ -175,29 +194,23 @@ export default function TeacherCourses() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div className="fgroup">
-                  <div className="flabel">Kategoriya</div>
+                  <div className="flabel">{t('teacher.courses.categoryLabel')}</div>
                   <select className="finput" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                    <option>Fuqarolik huquqi</option>
-                    <option>Jinoyat huquqi</option>
-                    <option>Mehnat huquqi</option>
-                    <option>Soliq huquqi</option>
-                    <option>Ma'muriy huquq</option>
-                    <option>Xalqaro huquq</option>
-                    <option>Tadbirkorlik huquqi</option>
+                    {categories.map(cat => <option key={cat}>{cat}</option>)}
                   </select>
                 </div>
                 <div className="fgroup">
-                  <div className="flabel">Daraja</div>
+                  <div className="flabel">{t('teacher.courses.levelLabel')}</div>
                   <select className="finput" value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })}>
-                    <option value="beginner">Boshlang'ich</option>
-                    <option value="intermediate">O'rta</option>
-                    <option value="advanced">Yuqori</option>
+                    <option value="beginner">{t('levels.beginner')}</option>
+                    <option value="intermediate">{t('levels.intermediate')}</option>
+                    <option value="advanced">{t('levels.advanced')}</option>
                   </select>
                 </div>
               </div>
 
               <div className="fgroup">
-                <div className="flabel">Banner rangi</div>
+                <div className="flabel">{t('teacher.courses.bannerLabel')}</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {GRADIENTS.map((g) => (
                     <div
@@ -215,32 +228,31 @@ export default function TeacherCourses() {
               </div>
 
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
-                <button className="btn btn-ghost" onClick={() => { setTab('list'); setEditTarget(null); }}>Bekor qilish</button>
-                <button className="btn btn-navy" onClick={() => submit('draft')}>Qoralama saqlash</button>
-                <button className="btn btn-gold" onClick={() => submit('published')}>Nashr etish</button>
+                <button className="btn btn-ghost" onClick={() => { setTab('list'); setEditTarget(null); }}>{t('teacher.courses.cancelBtn')}</button>
+                <button className="btn btn-navy" onClick={() => submit('draft')}>{t('teacher.courses.saveDraft')}</button>
+                <button className="btn btn-gold" onClick={() => submit('published')}>{t('teacher.courses.publishBtn')}</button>
               </div>
             </div>
           </div>
 
-          {/* Preview */}
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--hint)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>Ko'rinish</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--hint)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>{t('teacher.courses.preview')}</div>
             <div className="course-card" style={{ cursor: 'default' }}>
               <div className="cc-banner" style={{ background: form.banner_gradient }}>
                 <div style={{ position: 'absolute', top: 10, right: 10 }}>
-                  <span className="pill pill-amber">Qoralama</span>
+                  <span className="pill pill-amber">{t('status.draft')}</span>
                 </div>
                 <div style={{ color: '#fff', zIndex: 1, position: 'relative' }}>
-                  <div style={{ fontSize: 10, opacity: .6, marginBottom: 3 }}>0 o'quvchi</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>{form.title || 'Kurs nomi...'}</div>
+                  <div style={{ fontSize: 10, opacity: .6, marginBottom: 3 }}>{t('teacher.courses.previewStudents')}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>{form.title || t('teacher.courses.previewTitle')}</div>
                   <span className={`pill ${LEVEL_COLORS[form.level]}`} style={{ marginTop: 6, display: 'inline-block', fontSize: 10 }}>
-                    {LEVEL_LABELS[form.level]}
+                    {t(`levels.${form.level}`)}
                   </span>
                 </div>
               </div>
               <div className="cc-body">
                 <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5, minHeight: 32 }}>
-                  {form.description || 'Tavsif bu yerda ko\'rinadi...'}
+                  {form.description || t('teacher.courses.previewDescription')}
                 </div>
               </div>
             </div>

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { courses as coursesApi } from '../../api';
 import useStore from '../../store/useStore';
+import { SkeletonGrid } from '../../components/ui/Loading';
 
-const LEVEL_LABELS = { beginner: 'Boshlang\'ich', intermediate: 'O\'rta', advanced: 'Yuqori' };
-const LEVEL_PILLS = { beginner: 'pill-green', intermediate: 'pill-blue', advanced: 'pill-amber' };
+const LEVEL_PILL = { beginner: 'pill-green', intermediate: 'pill-blue', advanced: 'pill-amber' };
 const CATEGORY_COLORS = {
   'Fuqarolik huquqi': ['#E8EDFB', '#1B2A6B'],
   'Mehnat huquqi': ['#ECFDF3', '#027A48'],
@@ -18,6 +19,7 @@ export default function StudentCourses() {
   const [enrollingId, setEnrollingId] = useState(null);
   const { showToast } = useStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     coursesApi.list().then((d) => { setCourseList(d); setLoading(false); }).catch(() => setLoading(false));
@@ -29,18 +31,24 @@ export default function StudentCourses() {
     try {
       await coursesApi.enroll(courseId);
       setCourseList((p) => p.map((c) => c.id === courseId ? { ...c, enrolled_at: new Date().toISOString() } : c));
-      showToast('Kursga yozildingiz!');
-    } catch { showToast('Xatolik yuz berdi'); }
+      showToast(t('student.courses.enrolled'));
+    } catch { showToast(t('common.error')); }
     setEnrollingId(null);
   };
 
   const enrolled = courseList.filter((c) => c.enrolled_at);
   const available = courseList.filter((c) => !c.enrolled_at);
 
+  const getCourseBtn = (progress) => {
+    if (progress === 100) return t('student.courses.completed');
+    if (progress > 0) return t('student.courses.continue');
+    return t('student.courses.start');
+  };
+
   if (loading) {
     return (
-      <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
-        <div style={{ color: 'var(--hint)', fontSize: 13 }}>Yuklanmoqda...</div>
+      <div className="page">
+        <SkeletonGrid count={6} minWidth={280} />
       </div>
     );
   }
@@ -50,7 +58,7 @@ export default function StudentCourses() {
       {enrolled.length > 0 && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', fontFamily: 'Sora' }}>Mening kurslarim</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', fontFamily: 'Sora' }}>{t('student.courses.myCourses')}</h3>
             <span className="pill pill-navy" style={{ background: 'var(--navy)', color: '#fff' }}>{enrolled.length}</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12, marginBottom: 20 }}>
@@ -73,13 +81,15 @@ export default function StudentCourses() {
                   <div className="card-body">
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Sora', lineHeight: 1.3 }}>{c.title}</div>
-                      <span className={`pill ${LEVEL_PILLS[c.level] || 'pill-blue'}`} style={{ flexShrink: 0 }}>{LEVEL_LABELS[c.level] || c.level}</span>
+                      <span className={`pill ${LEVEL_PILL[c.level] || 'pill-blue'}`} style={{ flexShrink: 0 }}>
+                        {t(`levels.${c.level}`) || c.level}
+                      </span>
                     </div>
                     <div className="pb-wrap" style={{ marginBottom: 4 }}>
                       <div className="pb-fill" style={{ width: `${progress}%`, background: color }} />
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--muted)', marginBottom: 10 }}>
-                      <span>{c.completed_lessons || 0}/{c.lesson_count || 0} dars</span>
+                      <span>{c.completed_lessons || 0}/{c.lesson_count || 0} {t('common.lessons')}</span>
                       <span style={{ fontWeight: 700, color }}>{progress}%</span>
                     </div>
                     <button
@@ -87,7 +97,7 @@ export default function StudentCourses() {
                       style={{ width: '100%', justifyContent: 'center', fontSize: 12 }}
                       onClick={(e) => { e.stopPropagation(); navigate(`/student/courses/${c.id}/lessons`); }}
                     >
-                      {progress === 100 ? '✓ Tugallangan' : progress > 0 ? 'Davom ettirish →' : 'Boshlash →'}
+                      {getCourseBtn(progress)}
                     </button>
                   </div>
                 </div>
@@ -100,7 +110,7 @@ export default function StudentCourses() {
       {available.length > 0 && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', fontFamily: 'Sora' }}>Mavjud kurslar</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', fontFamily: 'Sora' }}>{t('student.courses.availableCourses')}</h3>
             <span className="pill pill-amber">{available.length}</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
@@ -114,7 +124,9 @@ export default function StudentCourses() {
                   <div className="card-body">
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Sora', lineHeight: 1.3 }}>{c.title}</div>
-                      <span className={`pill ${LEVEL_PILLS[c.level] || 'pill-blue'}`} style={{ flexShrink: 0 }}>{LEVEL_LABELS[c.level] || c.level}</span>
+                      <span className={`pill ${LEVEL_PILL[c.level] || 'pill-blue'}`} style={{ flexShrink: 0 }}>
+                        {t(`levels.${c.level}`) || c.level}
+                      </span>
                     </div>
                     {c.description && (
                       <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
@@ -123,7 +135,7 @@ export default function StudentCourses() {
                     )}
                     <div style={{ display: 'flex', gap: 6, fontSize: 11, color: 'var(--muted)', marginBottom: 10 }}>
                       <span style={{ background: bg, color: tc, padding: '2px 7px', borderRadius: 5, fontWeight: 600 }}>{c.category}</span>
-                      {c.lesson_count > 0 && <span>{c.lesson_count} dars</span>}
+                      {c.lesson_count > 0 && <span>{c.lesson_count} {t('common.lessons')}</span>}
                     </div>
                     <button
                       className="btn btn-gold"
@@ -131,7 +143,7 @@ export default function StudentCourses() {
                       disabled={enrollingId === c.id}
                       onClick={(e) => enroll(e, c.id)}
                     >
-                      {enrollingId === c.id ? 'Yozilmoqda...' : '+ Yozilish'}
+                      {enrollingId === c.id ? t('student.courses.enrolling') : t('student.courses.enroll')}
                     </button>
                   </div>
                 </div>
@@ -144,7 +156,7 @@ export default function StudentCourses() {
       {courseList.length === 0 && (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--hint)' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>📚</div>
-          <div style={{ fontSize: 14 }}>Hozircha kurslar mavjud emas</div>
+          <div style={{ fontSize: 14 }}>{t('student.courses.noCourses')}</div>
         </div>
       )}
     </div>
