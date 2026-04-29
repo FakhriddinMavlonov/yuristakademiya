@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { chat as chatApi } from '../../api';
 import useStore from '../../store/useStore';
 
@@ -9,6 +10,7 @@ export default function TeacherChat() {
   const [text, setText] = useState('');
   const msgRef = useRef(null);
   const { socket, showToast } = useStore();
+  const { t } = useTranslation();
 
   useEffect(() => { chatApi.contacts().then(setContacts).catch(() => {}); }, []);
 
@@ -79,7 +81,7 @@ export default function TeacherChat() {
                 </div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Sora' }}>{active.first_name} {active.last_name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>O'quvchi</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>{t('teacher.chat.studentRole')}</div>
                 </div>
               </div>
               <div className="chat-msgs" ref={msgRef}>
@@ -97,7 +99,7 @@ export default function TeacherChat() {
                 <textarea
                   className="chat-input"
                   rows={1}
-                  placeholder="Xabar yozing..."
+                  placeholder={t('teacher.chat.messagePlaceholder')}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
@@ -110,7 +112,7 @@ export default function TeacherChat() {
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--hint)', flexDirection: 'column', gap: 10 }}>
               <span style={{ fontSize: 40 }}>💬</span>
-              <span style={{ fontSize: 13 }}>O'quvchini tanlang</span>
+              <span style={{ fontSize: 13 }}>{t('teacher.chat.selectContact')}</span>
             </div>
           )}
         </div>

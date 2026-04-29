@@ -17,7 +17,13 @@
     "submit": "Отправить",
     "noData": "Нет данных",
     "lessons": "уроков",
-    "students": "студентов"
+    "students": "студентов",
+    "meetingError": "Ошибка в встрече",
+    "meetingJoinError": "Ошибка входа в встречу",
+    "cameraLoading": "Камера запускается...",
+    "exitBtn": "✕ Выйти",
+    "meetingEnded": "Встреча завершена",
+    "roomNotCreated": "Комната встречи не создана"
   },
   "theme": {
     "light": "Светлая тема",
@@ -41,7 +47,10 @@
     "users": "Пользователи",
     "payments": "Платежи",
     "salaries": "Зарплаты",
-    "telegramMessages": "Telegram сообщения"
+    "telegramMessages": "Telegram сообщения",
+    "groups": "Группы",
+    "schedule": "Расписание",
+    "attendance": "Посещаемость"
   },
   "sidebar": {
     "platform": "LMS Platform v1.0",
@@ -468,9 +477,33 @@
       "selectContact": "Выберите студента",
       "messagePlaceholder": "Напишите сообщение...",
       "sendError": "Сообщение не отправлено"
+    },
+    "studentDetail": {
+      "loading": "Загрузка...",
+      "notFound": "Студент не найден",
+      "inactive": "Неактивен",
+      "personalInfo": "Личная информация",
+      "primaryPhone": "Основной телефон",
+      "phone2": "Телефон 2",
+      "phone3": "Телефон 3",
+      "telegram": "Telegram",
+      "telegramLink": "Открыть в Telegram",
+      "avgScore": "Средний балл",
+      "completedLessons": "Пройденные уроки",
+      "totalLessons": "Всего уроков",
+      "progressTitle": "Прогресс прохождения уроков",
+      "lessonsProgress": "{{completed}} / {{total}} урок ({{pct}}%)",
+      "wrongAnswers": "Ошибки в тестах",
+      "chatBtn": "Чат",
+      "telegramBtn": "Telegram"
     }
   },
   "admin": {
+    "messages": {
+      "heading": "Telegram сообщения",
+      "conversations": "Переписки",
+      "empty": "Нет переписок"
+    },
     "dashboard": {
       "overviewTab": "📊 Общая статистика",
       "studentsTab": "👥 Студенты ({{count}})",
@@ -550,7 +583,12 @@
       "editHeading": "Редактировать пользователя",
       "emailLabel": "Email",
       "savingBtn": "Сохраняется...",
-      "saveBtn": "Сохранить"
+      "saveBtn": "Сохранить",
+      "newPasswordLabel": "Новый пароль (необязательно)",
+      "newPasswordPlaceholder": "Введите для смены пароля...",
+      "passwordShort": "Пароль должен содержать не менее 6 символов",
+      "passwordOk": "Пароль подходит",
+      "passwordChanged": "Пароль успешно изменён"
     },
     "payments": {
       "loadError": "Ошибка загрузки платежей",
@@ -625,5 +663,113 @@
     "homeworkGraded": "Задание проверено: {{score}} баллов",
     "newMeeting": "Новая встреча запланирована!",
     "meetingStarted": "Встреча началась! Войдите."
+  },
+  "weekdays": ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"],
+  "shifts": {
+    "morning": "Утро",
+    "afternoon": "День",
+    "evening": "Вечер",
+    "weekend": "Выходные"
+  },
+  "attendanceStatus": {
+    "present": "Присутствовал",
+    "late": "Опоздал",
+    "absent": "Отсутствовал",
+    "excused": "Уважительная причина"
+  },
+  "groups": {
+    "title": "Группы",
+    "createBtn": "+ Новая группа",
+    "nameLabel": "Название группы",
+    "namePlaceholder": "Напр: Полгода 2026 / вечерняя",
+    "courseLabel": "Курс",
+    "teacherLabel": "Преподаватель",
+    "startDateLabel": "Дата начала",
+    "endDateLabel": "Дата окончания",
+    "shiftLabel": "Смена",
+    "capacityLabel": "Вместимость",
+    "statusLabel": "Статус",
+    "studentsTab": "Студенты",
+    "scheduleTab": "Расписание",
+    "attendanceTab": "Посещаемость",
+    "addStudentLabel": "Добавить студента",
+    "addStudentPlaceholder": "Выберите студента...",
+    "noGroups": "Группы ещё не созданы",
+    "noGroupsTeacher": "Вам не назначены группы",
+    "studentsCount": "{{count}} студентов",
+    "createTitle": "Создать новую группу",
+    "editTitle": "Редактировать группу",
+    "saveBtn": "Сохранить",
+    "savingBtn": "Сохранение...",
+    "deleteConfirm": "Удалить эту группу? Все данные посещаемости также удалятся.",
+    "deleted": "Группа удалена",
+    "created": "Группа создана",
+    "updated": "Группа обновлена",
+    "loadError": "Ошибка загрузки групп",
+    "studentAdded": "Студент добавлен в группу",
+    "studentRemoved": "Студент удалён из группы",
+    "scheduleSaved": "Расписание сохранено",
+    "addSlotBtn": "+ Добавить",
+    "startTimeLabel": "Начало",
+    "endTimeLabel": "Конец",
+    "roomLabel": "Аудитория",
+    "noSchedule": "Расписание не установлено",
+    "attendanceRate": "Посещаемость %",
+    "presentCount": "Присутствовал",
+    "absentCount": "Отсутствовал",
+    "gradesTab": "Оценки"
+  },
+  "attendance": {
+    "title": "Посещаемость",
+    "dateLabel": "Дата",
+    "saveBtn": "Сохранить посещаемость",
+    "savingBtn": "Сохранение...",
+    "saved": "Посещаемость сохранена",
+    "saveError": "Ошибка сохранения",
+    "loadError": "Ошибка загрузки",
+    "noStudents": "В группе нет студентов",
+    "statsTitle": "Статистика посещаемости",
+    "rateLabel": "Процент посещаемости",
+    "totalLabel": "Всего занятий",
+    "presentLabel": "Присутствовал",
+    "lateLabel": "Опоздал",
+    "absentLabel": "Отсутствовал",
+    "excusedLabel": "Уважительная причина",
+    "historyTitle": "История посещений",
+    "myAttendance": "Моя посещаемость",
+    "noHistory": "Нет данных о посещаемости"
+  },
+  "schedule": {
+    "title": "Моё расписание",
+    "myGroup": "Моя группа",
+    "weeklySchedule": "Еженедельное расписание",
+    "noGroup": "Вы не записаны ни в одну группу",
+    "noSchedule": "Расписание для этой группы не установлено",
+    "today": "Сегодня",
+    "room": "Аудитория",
+    "time": "Время",
+    "attendanceSection": "История посещений",
+    "gradesSection": "История оценок"
+  },
+  "grades": {
+    "title": "Журнал оценок",
+    "dateLabel": "Дата",
+    "saveBtn": "Сохранить оценки",
+    "savingBtn": "Сохранение...",
+    "saved": "Оценки сохранены",
+    "saveError": "Ошибка сохранения",
+    "loadError": "Ошибка загрузки",
+    "noStudents": "В группе нет студентов",
+    "scoreLabel": "Оценка (0–10)",
+    "commentLabel": "Комментарий",
+    "commentPlaceholder": "Комментарий...",
+    "avgScore": "Средняя оценка",
+    "historyTitle": "История оценок",
+    "myGrades": "Мои оценки",
+    "noHistory": "Оценок пока нет",
+    "statsTitle": "Статистика оценок",
+    "totalLabel": "Всего оценок",
+    "bestLabel": "Лучшая оценка",
+    "noGrade": "—"
   }
 }

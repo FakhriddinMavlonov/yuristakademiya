@@ -30,6 +30,8 @@ export default function TeacherCourses() {
   const defaultCategory = t('teacher.courses.categories.civil');
 
   const [loading, setLoading] = useState(true);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategoryText, setNewCategoryText] = useState('');
 
   useEffect(() => {
     coursesApi.list().then(d => { setList(d); setLoading(false); }).catch(() => setLoading(false));
@@ -76,6 +78,7 @@ export default function TeacherCourses() {
     } catch { showToast(t('common.error')); }
   };
 
+  const [extraCategories, setExtraCategories] = useState([]);
   const categories = [
     t('teacher.courses.categories.civil'),
     t('teacher.courses.categories.criminal'),
@@ -84,7 +87,19 @@ export default function TeacherCourses() {
     t('teacher.courses.categories.admin'),
     t('teacher.courses.categories.international'),
     t('teacher.courses.categories.business'),
+    ...extraCategories,
   ];
+
+  const confirmNewCategory = () => {
+    const trimmed = newCategoryText.trim();
+    if (!trimmed) return;
+    if (!extraCategories.includes(trimmed)) {
+      setExtraCategories((prev) => [...prev, trimmed]);
+    }
+    setForm((f) => ({ ...f, category: trimmed }));
+    setNewCategoryText('');
+    setAddingCategory(false);
+  };
 
   if (loading) return (
     <div className="page"><SkeletonGrid count={6} minWidth={280} /></div>
@@ -120,7 +135,7 @@ export default function TeacherCourses() {
                 <div className="course-card" key={c.id} onClick={() => navigate(`/teacher/courses/${c.id}/lessons`)}>
                   <div className="cc-banner" style={{ background: c.banner_gradient || GRADIENTS[0] }}>
                     <div style={{ position: 'absolute', top: 10, right: 10 }}>
-                      <span className={`pill ${c.status === 'published' ? 'pill-green' : 'pill-amber'}`}>
+                      <span className={`pill ${c.status === 'published' ? 'pill-blue' : 'pill-amber'}`}>
                         {c.status === 'published' ? t('status.published') : t('status.draft')}
                       </span>
                     </div>
@@ -128,7 +143,7 @@ export default function TeacherCourses() {
                       <div style={{ fontSize: 10, opacity: .6, marginBottom: 3 }}>
                         {c.enrolled_count || 0} {t('common.students')} · {c.lesson_count || 0} {t('common.lessons')}
                       </div>
-                      <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>{c.title}</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.3 }}>{c.title}</div>
                       <span className={`pill ${LEVEL_COLORS[c.level] || 'pill-blue'}`} style={{ marginTop: 6, display: 'inline-block', fontSize: 10 }}>
                         {t(`levels.${c.level}`) || c.level}
                       </span>
@@ -195,9 +210,36 @@ export default function TeacherCourses() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div className="fgroup">
                   <div className="flabel">{t('teacher.courses.categoryLabel')}</div>
-                  <select className="finput" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                    {categories.map(cat => <option key={cat}>{cat}</option>)}
-                  </select>
+                  {addingCategory ? (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input
+                        autoFocus
+                        className="finput"
+                        placeholder={t('teacher.courses.addCategoryPlaceholder')}
+                        value={newCategoryText}
+                        onChange={(e) => setNewCategoryText(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') confirmNewCategory(); if (e.key === 'Escape') setAddingCategory(false); }}
+                      />
+                      <button className="btn btn-navy btn-sm" style={{ flexShrink: 0 }} onClick={confirmNewCategory}>
+                        {t('teacher.courses.addCategoryConfirm')}
+                      </button>
+                      <button className="btn btn-ghost btn-sm" style={{ flexShrink: 0 }} onClick={() => setAddingCategory(false)}>✕</button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <select className="finput" style={{ flex: 1 }} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                        {categories.map(cat => <option key={cat}>{cat}</option>)}
+                      </select>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+                        onClick={() => { setAddingCategory(true); setNewCategoryText(''); }}
+                      >
+                        {t('teacher.courses.addCategoryBtn')}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="fgroup">
                   <div className="flabel">{t('teacher.courses.levelLabel')}</div>

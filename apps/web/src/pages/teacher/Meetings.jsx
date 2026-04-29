@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { meetings as meetingsApi, courses as coursesApi } from '../../api';
 import useStore from '../../store/useStore';
 
@@ -15,6 +16,7 @@ function ScoreColor(s) {
 export default function TeacherMeetings() {
   const navigate = useNavigate();
   const { showToast } = useStore();
+  const { t } = useTranslation();
   const [list, setList] = useState([]);
   const [courseList, setCourseList] = useState([]);
   const [students, setStudents] = useState([]);
@@ -43,13 +45,13 @@ export default function TeacherMeetings() {
       setList(data);
       setActiveM(data[0] || null);
     } catch (e) {
-      showToast('Meetinglarni yuklashda xatolik');
+      showToast(t('teacher.meetings.loadError'));
     }
   };
 
   const createMeeting = async () => {
     if (!form.courseId || !form.title || !form.scheduledAt) {
-      return showToast('Barcha maydonlarni to\'ldiring!');
+      return showToast(t('teacher.meetings.fillAll'));
     }
     setSaving(true);
     try {
@@ -58,7 +60,7 @@ export default function TeacherMeetings() {
         participantIds: form.audienceType === 'selected' ? selectedStudents : undefined,
       });
       setList((p) => [m, ...p]);
-      showToast('Meeting rejalashtirildi!');
+      showToast(t('teacher.meetings.scheduled'));
       setForm({ courseId: '', title: '', scheduledAt: '', durationMinutes: 60, audienceType: 'all' });
       setSelectedStudents([]);
     } catch (e) {
@@ -75,7 +77,7 @@ export default function TeacherMeetings() {
       const updated = { ...activeM, status: 'live' };
       setActiveM(updated);
       setList((p) => p.map(m => m.id === activeM.id ? updated : m));
-      showToast('Meeting boshlandi!');
+      showToast(t('teacher.meetings.started'));
     } catch (e) {
       showToast('Xatolik yuz berdi');
     }
@@ -91,11 +93,11 @@ export default function TeacherMeetings() {
       if (checked) {
         await meetingsApi.addParticipant(activeM.id, studentId);
         setSelectedStudents((p) => [...p, studentId]);
-        showToast("O'quvchi qo'shildi");
+        showToast(t('teacher.meetings.studentAdded'));
       } else {
         await meetingsApi.removeParticipant(activeM.id, studentId);
         setSelectedStudents((p) => p.filter(id => id !== studentId));
-        showToast("O'quvchi olib tashlandi");
+        showToast(t('teacher.meetings.studentRemoved'));
       }
     } catch (e) {
       showToast('Xatolik yuz berdi');
@@ -191,7 +193,7 @@ export default function TeacherMeetings() {
                               onChange={(e) => toggleStudentSelect(s.id, e.target.checked)}
                               style={{ cursor: 'pointer' }}
                             />
-                            <span style={{ fontSize: 10, color: 'var(--muted)' }}>Qo'shish</span>
+                            <span style={{ fontSize: 10, color: 'var(--muted)' }}>{t('teacher.meetings.addLabel')}</span>
                           </label>
                         </div>
                       );
@@ -199,7 +201,7 @@ export default function TeacherMeetings() {
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', color: 'var(--hint)', fontSize: 12, padding: 20 }}>
-                    O'quvchilar yo'q
+                    {t('teacher.meetings.noStudents')}
                   </div>
                 )}
               </div>
@@ -211,25 +213,25 @@ export default function TeacherMeetings() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Schedule */}
           <div className="card">
-            <div className="card-hd"><h3>Yangi Meeting</h3></div>
+            <div className="card-hd"><h3>{t('teacher.meetings.newMeeting')}</h3></div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div className="fgroup">
-                <div className="flabel">Kurs</div>
+                <div className="flabel">{t('teacher.meetings.courseLabel')}</div>
                 <select className="finput" value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })}>
-                  <option value="">Tanlang</option>
+                  <option value="">{t('teacher.meetings.selectOption')}</option>
                   {courseList.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                 </select>
               </div>
               <div className="fgroup">
-                <div className="flabel">Sarlavha</div>
-                <input className="finput" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Meeting nomi" />
+                <div className="flabel">{t('teacher.meetings.titleLabel')}</div>
+                <input className="finput" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder={t('teacher.meetings.titlePlaceholder')} />
               </div>
               <div className="fgroup">
-                <div className="flabel">Sana va vaqt</div>
+                <div className="flabel">{t('teacher.meetings.dateLabel')}</div>
                 <input className="finput" type="datetime-local" value={form.scheduledAt} onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })} />
               </div>
               <button className="btn btn-gold" onClick={createMeeting} disabled={saving} style={{ justifyContent: 'center' }}>
-                {saving ? 'Saqlanmoqda...' : '✓ Saqlash'}
+                {saving ? t('teacher.meetings.savingBtn') : t('teacher.meetings.saveBtn')}
               </button>
             </div>
           </div>

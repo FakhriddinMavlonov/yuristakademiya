@@ -319,6 +319,76 @@ const migrate = async () => {
       )
     `);
 
+    // 22. groups (guruhlar)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS groups (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        course_id INTEGER REFERENCES courses(id) ON DELETE SET NULL,
+        teacher_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        start_date DATE NOT NULL,
+        end_date DATE,
+        shift VARCHAR(20) DEFAULT 'morning' CHECK (shift IN ('morning','afternoon','evening','weekend')),
+        capacity INTEGER DEFAULT 25,
+        status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active','finished','cancelled')),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    // 23. group_students
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS group_students (
+        id SERIAL PRIMARY KEY,
+        group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        joined_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(group_id, user_id)
+      )
+    `);
+
+    // 24. schedule_slots (haftalik dars jadvali)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS schedule_slots (
+        id SERIAL PRIMARY KEY,
+        group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+        weekday SMALLINT NOT NULL CHECK (weekday BETWEEN 0 AND 6),
+        start_time TIME NOT NULL,
+        end_time TIME NOT NULL,
+        room VARCHAR(50) DEFAULT 'Online',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    // 25. attendance (davomat)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS attendance (
+        id SERIAL PRIMARY KEY,
+        group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        date DATE NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'absent' CHECK (status IN ('present','late','absent','excused')),
+        marked_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        note TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(group_id, user_id, date)
+      )
+    `);
+
+    // 26. daily_grades (kunlik baholar jurnali)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS daily_grades (
+        id SERIAL PRIMARY KEY,
+        group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        date DATE NOT NULL,
+        score SMALLINT NOT NULL CHECK (score BETWEEN 0 AND 10),
+        comment TEXT,
+        marked_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(group_id, user_id, date)
+      )
+    `);
+
     // Create indexes
     await client.query(`CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_payments_course_id ON payments(course_id)`);
@@ -329,9 +399,15 @@ const migrate = async () => {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_telegram_messages_chat_id ON telegram_messages(telegram_chat_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_telegram_messages_user_id ON telegram_messages(user_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_telegram_messages_created_at ON telegram_messages(created_at)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_groups_teacher_id ON groups(teacher_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_group_students_user_id ON group_students(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_attendance_group_date ON attendance(group_id, date)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_attendance_user_id ON attendance(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_daily_grades_group_date ON daily_grades(group_id, date)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_daily_grades_user_id ON daily_grades(user_id)`);
 
     await client.query('COMMIT');
-    console.log('✅ Migration completed — 21 tables created');
+    console.log('✅ Migration completed — 26 tables created');
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('❌ Migration failed:', err.message);

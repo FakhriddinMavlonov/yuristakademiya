@@ -36,6 +36,9 @@ app.use('/api/meetings', require('./modules/meetings/meetings.routes'));
 app.use('/api/library', require('./modules/library/library.routes'));
 app.use('/api/chat', require('./modules/chat/chat.routes'));
 app.use('/api/admin', require('./modules/admin/admin.routes'));
+app.use('/api/groups', require('./modules/groups/groups.routes'));
+app.use('/api/attendance', require('./modules/attendance/attendance.routes'));
+app.use('/api/grades', require('./modules/grades/grades.routes'));
 
 // 👉 ERROR HANDLER (HAMMASIDAN KEYIN)
 app.use(errorHandler);

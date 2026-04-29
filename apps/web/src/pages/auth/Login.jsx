@@ -85,10 +85,13 @@ export default function Login() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
           <div style={{
-            width: 44, height: 44, borderRadius: 12, background: 'var(--gold)',
+            width: 44, height: 44, borderRadius: 12,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontFamily: 'Sora', fontWeight: 800, fontSize: 14, color: 'var(--navy)',
-          }}>YA</div>
+          }}>
+            <img src="/logo.jpg" alt=""  className=''
+          style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: 4 }}/>
+          </div>
           <div>
             <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>Yurist Akademiya</div>
             <div style={{ fontSize: 12, color: 'var(--muted)' }}>LMS Platform</div>

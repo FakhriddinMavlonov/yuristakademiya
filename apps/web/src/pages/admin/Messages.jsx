@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { admin as adminApi } from '../../api';
 
 export default function AdminMessages() {
@@ -6,6 +7,7 @@ export default function AdminMessages() {
   const [selectedChatId, setSelectedChatId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     loadConversations();
@@ -51,12 +53,12 @@ export default function AdminMessages() {
         {/* Conversations list */}
         <div className="card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div className="card-hd" style={{ borderBottom: '1px solid var(--line)', paddingBottom: 12, marginBottom: 0 }}>
-            <h3 style={{ margin: 0, fontSize: 14 }}>👥 Muloqotlar ({conversations.length})</h3>
+            <h3 style={{ margin: 0, fontSize: 14 }}>👥 {t('admin.messages.conversations')} ({conversations.length})</h3>
           </div>
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {conversations.length === 0 ? (
               <div style={{ padding: 16, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>
-                {loading ? 'Yuklanyapti...' : 'Muloqot yo\'q'}
+                {loading ? t('common.loading') : t('admin.messages.empty')}
               </div>
             ) : (
               conversations.map((conv) => (

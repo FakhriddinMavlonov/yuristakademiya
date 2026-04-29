@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import DailyIframe from '@daily-co/daily-js';
 import { meetings as meetingsApi } from '../../api';
 import useStore from '../../store/useStore';
@@ -8,6 +9,7 @@ export default function TeacherJoinMeeting() {
   const { meetingId } = useParams();
   const navigate = useNavigate();
   const { showToast } = useStore();
+  const { t } = useTranslation();
   const containerRef = useRef(null);
   const callFrameRef = useRef(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,7 @@ export default function TeacherJoinMeeting() {
         if (cancelled) return;
 
         if (!data?.roomUrl) {
-          throw new Error('Meeting xonasi yaratilmagan');
+          throw new Error(t('common.roomNotCreated'));
         }
 
         const allMeetings = await meetingsApi.list();
@@ -59,13 +61,13 @@ export default function TeacherJoinMeeting() {
 
         callFrame.on('error', (e) => {
           console.error('Daily error:', e);
-          showToast('Meetingda xatolik');
+          showToast(t('common.meetingError'));
         });
 
         await callFrame.join({
           url: data.roomUrl,
           token: data.token,
-          userName: 'Ustoz',
+          userName: t('sidebar.teacherRole'),
           startVideoOff: false,
           startAudioOff: false,
         });
@@ -74,9 +76,9 @@ export default function TeacherJoinMeeting() {
       } catch (e) {
         console.error('Error loading meeting:', e);
         if (!cancelled) {
-          setError('Meetingga kirishda xatolik');
+          setError(t('common.meetingJoinError'));
           setLoading(false);
-          showToast('Meetingga kirishda xatolik');
+          showToast(t('common.meetingJoinError'));
         }
       }
     };
@@ -101,7 +103,7 @@ export default function TeacherJoinMeeting() {
         callFrameRef.current.destroy();
       }
       await meetingsApi.updateStatus(meetingId, 'ended');
-      showToast('Meeting tugallandi');
+      showToast(t('common.meetingEnded'));
       navigate('/teacher/meetings');
     } catch (e) {
       navigate('/teacher/meetings');
@@ -115,7 +117,7 @@ export default function TeacherJoinMeeting() {
           <div style={{ fontSize: 40, marginBottom: 10 }}>❌</div>
           <div style={{ fontSize: 14, marginBottom: 20 }}>{error}</div>
           <button className="btn btn-gold" onClick={() => navigate('/teacher/meetings')}>
-            Orqaga
+            {t('common.back')}
           </button>
         </div>
       </div>
@@ -128,7 +130,7 @@ export default function TeacherJoinMeeting() {
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, background: '#000' }}>
           <div style={{ textAlign: 'center', color: '#fff' }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>📹</div>
-            <div>Kamera yoqilmoqda...</div>
+            <div>{t('common.cameraLoading')}</div>
           </div>
         </div>
       )}
@@ -164,7 +166,7 @@ export default function TeacherJoinMeeting() {
             fontSize: 12,
           }}
         >
-          ✕ Chiqish
+          {t('common.exitBtn')}
         </button>
       </div>
 

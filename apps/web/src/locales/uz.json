@@ -17,7 +17,13 @@
     "submit": "Yuborish",
     "noData": "Ma'lumot yo'q",
     "lessons": "dars",
-    "students": "o'quvchi"
+    "students": "o'quvchi",
+    "meetingError": "Meetingda xatolik",
+    "meetingJoinError": "Meetingga kirishda xatolik",
+    "cameraLoading": "Kamera yoqilmoqda...",
+    "exitBtn": "✕ Chiqish",
+    "meetingEnded": "Meeting tugallandi",
+    "roomNotCreated": "Meeting xonasi yaratilmagan"
   },
   "theme": {
     "light": "Kunduzgi rejim",
@@ -41,7 +47,10 @@
     "users": "Foydalanuvchilar",
     "payments": "To'lovlar",
     "salaries": "Oyliklar",
-    "telegramMessages": "Telegram Muloqotlari"
+    "telegramMessages": "Telegram Muloqotlari",
+    "groups": "Guruhlar",
+    "schedule": "Jadval",
+    "attendance": "Davomat"
   },
   "sidebar": {
     "platform": "LMS Platform v1.0",
@@ -468,9 +477,33 @@
       "selectContact": "O'quvchini tanlang",
       "messagePlaceholder": "Xabar yozing...",
       "sendError": "Xabar yuborilmadi"
+    },
+    "studentDetail": {
+      "loading": "Yuklanmoqda...",
+      "notFound": "O'quvchi topilmadi",
+      "inactive": "Nofaol",
+      "personalInfo": "Shaxsiy ma'lumotlar",
+      "primaryPhone": "Asosiy telefon",
+      "phone2": "2-chi telefon",
+      "phone3": "3-chi telefon",
+      "telegram": "Telegram",
+      "telegramLink": "Telegram ga o'tish",
+      "avgScore": "O'rtacha ball",
+      "completedLessons": "Tugallangan darslar",
+      "totalLessons": "Jami darslar",
+      "progressTitle": "Darslarni tugallash progessi",
+      "lessonsProgress": "{{completed}} / {{total}} dars ({{pct}}%)",
+      "wrongAnswers": "Testda xato qilgan savollar",
+      "chatBtn": "Chat",
+      "telegramBtn": "Telegram"
     }
   },
   "admin": {
+    "messages": {
+      "heading": "Telegram Muloqotlari",
+      "conversations": "Muloqotlar",
+      "empty": "Muloqot yo'q"
+    },
     "dashboard": {
       "overviewTab": "📊 Umumiy statistika",
       "studentsTab": "👥 O'quvchilar ({{count}})",
@@ -550,7 +583,12 @@
       "editHeading": "Foydalanuvchini tahrir qilish",
       "emailLabel": "Email",
       "savingBtn": "Saqlanmoqda...",
-      "saveBtn": "Saqlash"
+      "saveBtn": "Saqlash",
+      "newPasswordLabel": "Yangi parol (ixtiyoriy)",
+      "newPasswordPlaceholder": "O'zgartirish uchun kiriting...",
+      "passwordShort": "Parol kamida 6 ta belgidan iborat bo'lsin",
+      "passwordOk": "Parol tayyor",
+      "passwordChanged": "Parol muvaffaqiyatli o'zgartirildi"
     },
     "payments": {
       "loadError": "To'lovlarni yuklashda xatolik",
@@ -625,5 +663,113 @@
     "homeworkGraded": "Uy ishi baholandi: {{score}} ball",
     "newMeeting": "Yangi meeting rejalashtirildi!",
     "meetingStarted": "Meeting boshlandi! Kiring."
+  },
+  "weekdays": ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"],
+  "shifts": {
+    "morning": "Ertalab",
+    "afternoon": "Tushdan keyin",
+    "evening": "Kechqurun",
+    "weekend": "Dam olish kunlari"
+  },
+  "attendanceStatus": {
+    "present": "Keldi",
+    "late": "Kech keldi",
+    "absent": "Kelmadi",
+    "excused": "Sababli"
+  },
+  "groups": {
+    "title": "Guruhlar",
+    "createBtn": "+ Yangi guruh",
+    "nameLabel": "Guruh nomi",
+    "namePlaceholder": "Masalan: Yarim yillik 2026 / kechki",
+    "courseLabel": "Kurs",
+    "teacherLabel": "O'qituvchi",
+    "startDateLabel": "Boshlanish sanasi",
+    "endDateLabel": "Tugash sanasi",
+    "shiftLabel": "Smena",
+    "capacityLabel": "Sig'im (o'quvchi soni)",
+    "statusLabel": "Holat",
+    "studentsTab": "O'quvchilar",
+    "scheduleTab": "Jadval",
+    "attendanceTab": "Davomat",
+    "addStudentLabel": "O'quvchi qo'shish",
+    "addStudentPlaceholder": "O'quvchi tanlang...",
+    "noGroups": "Hali guruh yaratilmagan",
+    "noGroupsTeacher": "Sizga guruh biriktirilmagan",
+    "studentsCount": "{{count}} o'quvchi",
+    "createTitle": "Yangi guruh yaratish",
+    "editTitle": "Guruhni tahrirlash",
+    "saveBtn": "Saqlash",
+    "savingBtn": "Saqlanmoqda...",
+    "deleteConfirm": "Bu guruhni o'chirishni tasdiqlaysizmi? Barcha davomat ma'lumotlari ham o'chadi.",
+    "deleted": "Guruh o'chirildi",
+    "created": "Guruh yaratildi",
+    "updated": "Guruh yangilandi",
+    "loadError": "Guruhlarni yuklashda xatolik",
+    "studentAdded": "O'quvchi guruhga qo'shildi",
+    "studentRemoved": "O'quvchi guruhdan chiqarildi",
+    "scheduleSaved": "Jadval saqlandi",
+    "addSlotBtn": "+ Vaqt qo'shish",
+    "startTimeLabel": "Boshlanish",
+    "endTimeLabel": "Tugash",
+    "roomLabel": "Xona",
+    "noSchedule": "Jadval belgilanmagan",
+    "attendanceRate": "Davomat %",
+    "presentCount": "Keldi",
+    "absentCount": "Kelmadi",
+    "gradesTab": "Baholar"
+  },
+  "attendance": {
+    "title": "Davomat",
+    "dateLabel": "Sana",
+    "saveBtn": "Davomatni saqlash",
+    "savingBtn": "Saqlanmoqda...",
+    "saved": "Davomat saqlandi",
+    "saveError": "Saqlashda xatolik",
+    "loadError": "Yuklashda xatolik",
+    "noStudents": "Guruhda o'quvchi yo'q",
+    "statsTitle": "Davomat statistikasi",
+    "rateLabel": "Davomat foizi",
+    "totalLabel": "Jami darslar",
+    "presentLabel": "Keldi",
+    "lateLabel": "Kech keldi",
+    "absentLabel": "Kelmadi",
+    "excusedLabel": "Sababli",
+    "historyTitle": "Davomat tarixi",
+    "myAttendance": "Mening davomatim",
+    "noHistory": "Davomat ma'lumotlari yo'q"
+  },
+  "schedule": {
+    "title": "Mening jadvalim",
+    "myGroup": "Mening guruhim",
+    "weeklySchedule": "Haftalik jadval",
+    "noGroup": "Siz hech qaysi guruhga biriktirilmagansiz",
+    "noSchedule": "Bu guruh uchun jadval belgilanmagan",
+    "today": "Bugun",
+    "room": "Xona",
+    "time": "Vaqt",
+    "attendanceSection": "Davomat tarixi",
+    "gradesSection": "Baholar tarixi"
+  },
+  "grades": {
+    "title": "Baholar jurnali",
+    "dateLabel": "Sana",
+    "saveBtn": "Baholarni saqlash",
+    "savingBtn": "Saqlanmoqda...",
+    "saved": "Baholar saqlandi",
+    "saveError": "Saqlashda xatolik",
+    "loadError": "Yuklashda xatolik",
+    "noStudents": "Guruhda o'quvchi yo'q",
+    "scoreLabel": "Ball (0–10)",
+    "commentLabel": "Izoh",
+    "commentPlaceholder": "Izoh...",
+    "avgScore": "O'rtacha ball",
+    "historyTitle": "Baholar tarixi",
+    "myGrades": "Mening baholarim",
+    "noHistory": "Baholar yo'q",
+    "statsTitle": "Baholar statistikasi",
+    "totalLabel": "Jami baholangan",
+    "bestLabel": "Eng yuqori ball",
+    "noGrade": "—"
   }
 }

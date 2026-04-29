@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { tests as testsApi } from '../../api';
 
 export default function StudentTest() {
   const { testId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [phase, setPhase] = useState('loading');
   const [testData, setTestData] = useState(null);
@@ -29,7 +31,7 @@ export default function StudentTest() {
       if (testData.time_limit_minutes) setTimeLeft(testData.time_limit_minutes * 60);
       setPhase('active');
     } catch (err) {
-      alert(err?.error || 'Test boshlashda xatolik');
+      alert(err?.error || t('student.test.startError'));
     }
   };
 
@@ -58,7 +60,7 @@ export default function StudentTest() {
       setResult(res);
       setPhase('result');
     } catch (err) {
-      alert(err?.error || 'Yuborishda xatolik');
+      alert(err?.error || t('student.test.submitError'));
       setSubmitting(false);
     }
   }, [attemptId, answers, submitting]);
@@ -75,7 +77,7 @@ export default function StudentTest() {
   if (phase === 'loading') {
     return (
       <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
-        <div style={{ color: 'var(--hint)', fontSize: 13 }}>Yuklanmoqda...</div>
+        <div style={{ color: 'var(--hint)', fontSize: 13 }}>{t('common.loading')}</div>
       </div>
     );
   }
@@ -90,27 +92,27 @@ export default function StudentTest() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, margin: '20px 0' }}>
               <div className="stat-card">
                 <div className="stat-num" style={{ fontSize: 22, color: 'var(--navy)' }}>{total}</div>
-                <div className="stat-lbl">Savol</div>
+                <div className="stat-lbl">{t('student.test.questions')}</div>
               </div>
               <div className="stat-card">
                 <div className="stat-num" style={{ fontSize: 22, color: 'var(--amber)' }}>
                   {testData.time_limit_minutes || '∞'}
                 </div>
-                <div className="stat-lbl">{testData.time_limit_minutes ? 'Daqiqa' : 'Vaqt yo\'q'}</div>
+                <div className="stat-lbl">{testData.time_limit_minutes ? t('student.test.minutes') : t('student.test.noTime')}</div>
               </div>
               <div className="stat-card">
                 <div className="stat-num" style={{ fontSize: 22, color: 'var(--green)' }}>{testData.pass_score_pct || 90}%</div>
-                <div className="stat-lbl">O'tish balli</div>
+                <div className="stat-lbl">{t('student.test.passScore')}</div>
               </div>
             </div>
             {testData.passed && (
               <div style={{ padding: '10px 14px', background: 'var(--green-bg)', borderRadius: 8, fontSize: 12, color: 'var(--green)', marginBottom: 16, fontWeight: 600 }}>
-                ✓ Siz bu testni allaqachon muvaffaqiyatli topshirgansiz
+                {t('student.test.alreadyPassed')}
               </div>
             )}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button className="btn btn-ghost" onClick={() => navigate(-1)}>Orqaga</button>
-              <button className="btn btn-gold" style={{ minWidth: 140 }} onClick={startTest}>▶ Boshlash</button>
+              <button className="btn btn-ghost" onClick={() => navigate(-1)}>{t('student.test.backBtn')}</button>
+              <button className="btn btn-gold" style={{ minWidth: 140 }} onClick={startTest}>{t('student.test.startBtn')}</button>
             </div>
           </div>
         </div>
@@ -126,7 +128,7 @@ export default function StudentTest() {
           <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Sora' }}>{testData.title}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{answered}/{total} javob berildi</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{t('student.test.answered', { answered, total })}</div>
             </div>
             {timeLeft !== null && (
               <div style={{ fontFamily: 'Sora', fontSize: 22, fontWeight: 800, color: timerColor, minWidth: 60, textAlign: 'center' }}>
@@ -146,7 +148,7 @@ export default function StudentTest() {
             {passage && (
               <div style={{ background: '#F0F4FF', border: '.5px solid rgba(27,42,107,.15)', borderRadius: 12, padding: '18px 20px' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--navy)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: .5 }}>
-                  📖 Matnni o'qing
+                  {t('student.test.readText')}
                 </div>
                 <div style={{ fontSize: 13, lineHeight: 1.8, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{passage.text}</div>
               </div>
@@ -194,7 +196,7 @@ export default function StudentTest() {
         <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           {answered < total && (
             <span style={{ fontSize: 12, color: 'var(--muted)', alignSelf: 'center' }}>
-              {total - answered} ta savol qoldi
+              {t('student.test.remaining', { count: total - answered })}
             </span>
           )}
           <button
@@ -203,7 +205,7 @@ export default function StudentTest() {
             disabled={answered < total || submitting}
             onClick={submitTest}
           >
-            {submitting ? 'Tekshirilmoqda...' : 'Yakunlash →'}
+            {submitting ? t('student.test.checkingBtn') : t('student.test.finishBtn')}
           </button>
         </div>
       </div>
@@ -222,12 +224,12 @@ export default function StudentTest() {
           <div className="card-body" style={{ textAlign: 'center', padding: '36px 24px' }}>
             <div style={{ fontSize: 56, marginBottom: 12 }}>{passed ? '🏆' : '😔'}</div>
             <h2 style={{ fontFamily: 'Sora', fontSize: 22, marginBottom: 6, color: passed ? 'var(--green)' : 'var(--red)' }}>
-              {passed ? 'Tabriklaymiz!' : 'Muvaffaqiyatsiz'}
+              {passed ? t('student.test.passed') : t('student.test.failed')}
             </h2>
             <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 24 }}>
               {passed
-                ? 'Test muvaffaqiyatli topshirildi! Keyingi dars ochildi.'
-                : `O'tish uchun ${passScorePct}% kerak edi.`
+                ? t('student.test.passedMsg')
+                : t('student.test.failedMsg', { pct: passScorePct })
               }
             </div>
 
@@ -236,7 +238,7 @@ export default function StudentTest() {
                 {scorePct}%
               </div>
               <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
-                {result.earnedPoints} / {result.totalPoints} ball
+                {result.earnedPoints} / {result.totalPoints} {t('student.test.points')}
               </div>
             </div>
 
@@ -251,11 +253,11 @@ export default function StudentTest() {
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               {!passed && (
                 <button className="btn btn-gold" onClick={() => { setPhase('intro'); setAnswers({}); setResult(null); }}>
-                  Qayta urinish
+                  {t('student.test.retryBtn')}
                 </button>
               )}
               <button className="btn btn-navy" onClick={() => navigate(-1)}>
-                {passed ? '→ Davom ettirish' : '← Darslarga qaytish'}
+                {passed ? t('student.test.continueBtn') : t('student.test.backToLessons')}
               </button>
             </div>
           </div>
@@ -263,7 +265,7 @@ export default function StudentTest() {
 
         {result.showAnswers && result.answers?.length > 0 && (
           <div className="card" style={{ marginTop: 12 }}>
-            <div className="card-hd"><h3>Javoblar ko'rinishi</h3></div>
+            <div className="card-hd"><h3>{t('student.test.answersHeading')}</h3></div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {result.answers.map((a, i) => (
                 <div key={i} style={{

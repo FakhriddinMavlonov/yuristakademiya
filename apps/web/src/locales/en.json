@@ -17,7 +17,13 @@
     "submit": "Submit",
     "noData": "No data",
     "lessons": "lessons",
-    "students": "students"
+    "students": "students",
+    "meetingError": "Meeting error",
+    "meetingJoinError": "Error joining meeting",
+    "cameraLoading": "Starting camera...",
+    "exitBtn": "✕ Exit",
+    "meetingEnded": "Meeting ended",
+    "roomNotCreated": "Meeting room not created"
   },
   "theme": {
     "light": "Light mode",
@@ -41,7 +47,10 @@
     "users": "Users",
     "payments": "Payments",
     "salaries": "Salaries",
-    "telegramMessages": "Telegram Messages"
+    "telegramMessages": "Telegram Messages",
+    "groups": "Groups",
+    "schedule": "Schedule",
+    "attendance": "Attendance"
   },
   "sidebar": {
     "platform": "LMS Platform v1.0",
@@ -468,9 +477,33 @@
       "selectContact": "Select a student",
       "messagePlaceholder": "Type a message...",
       "sendError": "Message not sent"
+    },
+    "studentDetail": {
+      "loading": "Loading...",
+      "notFound": "Student not found",
+      "inactive": "Inactive",
+      "personalInfo": "Personal Information",
+      "primaryPhone": "Primary Phone",
+      "phone2": "Phone 2",
+      "phone3": "Phone 3",
+      "telegram": "Telegram",
+      "telegramLink": "Open in Telegram",
+      "avgScore": "Average Score",
+      "completedLessons": "Completed Lessons",
+      "totalLessons": "Total Lessons",
+      "progressTitle": "Lesson Completion Progress",
+      "lessonsProgress": "{{completed}} / {{total}} lessons ({{pct}}%)",
+      "wrongAnswers": "Wrong Test Answers",
+      "chatBtn": "Chat",
+      "telegramBtn": "Telegram"
     }
   },
   "admin": {
+    "messages": {
+      "heading": "Telegram Messages",
+      "conversations": "Conversations",
+      "empty": "No conversations"
+    },
     "dashboard": {
       "overviewTab": "📊 Overview",
       "studentsTab": "👥 Students ({{count}})",
@@ -550,7 +583,12 @@
       "editHeading": "Edit User",
       "emailLabel": "Email",
       "savingBtn": "Saving...",
-      "saveBtn": "Save"
+      "saveBtn": "Save",
+      "newPasswordLabel": "New Password (optional)",
+      "newPasswordPlaceholder": "Enter to change password...",
+      "passwordShort": "Password must be at least 6 characters",
+      "passwordOk": "Password looks good",
+      "passwordChanged": "Password changed successfully"
     },
     "payments": {
       "loadError": "Error loading payments",
@@ -625,5 +663,113 @@
     "homeworkGraded": "Homework graded: {{score}} points",
     "newMeeting": "New meeting scheduled!",
     "meetingStarted": "Meeting started! Join now."
+  },
+  "weekdays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+  "shifts": {
+    "morning": "Morning",
+    "afternoon": "Afternoon",
+    "evening": "Evening",
+    "weekend": "Weekend"
+  },
+  "attendanceStatus": {
+    "present": "Present",
+    "late": "Late",
+    "absent": "Absent",
+    "excused": "Excused"
+  },
+  "groups": {
+    "title": "Groups",
+    "createBtn": "+ New Group",
+    "nameLabel": "Group Name",
+    "namePlaceholder": "e.g. 6-Month 2026 / Evening",
+    "courseLabel": "Course",
+    "teacherLabel": "Teacher",
+    "startDateLabel": "Start Date",
+    "endDateLabel": "End Date",
+    "shiftLabel": "Shift",
+    "capacityLabel": "Capacity",
+    "statusLabel": "Status",
+    "studentsTab": "Students",
+    "scheduleTab": "Schedule",
+    "attendanceTab": "Attendance",
+    "addStudentLabel": "Add Student",
+    "addStudentPlaceholder": "Select student...",
+    "noGroups": "No groups created yet",
+    "noGroupsTeacher": "No groups assigned to you",
+    "studentsCount": "{{count}} students",
+    "createTitle": "Create New Group",
+    "editTitle": "Edit Group",
+    "saveBtn": "Save",
+    "savingBtn": "Saving...",
+    "deleteConfirm": "Delete this group? All attendance data will be removed.",
+    "deleted": "Group deleted",
+    "created": "Group created",
+    "updated": "Group updated",
+    "loadError": "Error loading groups",
+    "studentAdded": "Student added to group",
+    "studentRemoved": "Student removed from group",
+    "scheduleSaved": "Schedule saved",
+    "addSlotBtn": "+ Add Slot",
+    "startTimeLabel": "Start",
+    "endTimeLabel": "End",
+    "roomLabel": "Room",
+    "noSchedule": "No schedule set",
+    "attendanceRate": "Attendance %",
+    "presentCount": "Present",
+    "absentCount": "Absent",
+    "gradesTab": "Grades"
+  },
+  "attendance": {
+    "title": "Attendance",
+    "dateLabel": "Date",
+    "saveBtn": "Save Attendance",
+    "savingBtn": "Saving...",
+    "saved": "Attendance saved",
+    "saveError": "Error saving",
+    "loadError": "Error loading",
+    "noStudents": "No students in group",
+    "statsTitle": "Attendance Statistics",
+    "rateLabel": "Attendance Rate",
+    "totalLabel": "Total Classes",
+    "presentLabel": "Present",
+    "lateLabel": "Late",
+    "absentLabel": "Absent",
+    "excusedLabel": "Excused",
+    "historyTitle": "Attendance History",
+    "myAttendance": "My Attendance",
+    "noHistory": "No attendance records"
+  },
+  "schedule": {
+    "title": "My Schedule",
+    "myGroup": "My Group",
+    "weeklySchedule": "Weekly Schedule",
+    "noGroup": "You are not assigned to any group",
+    "noSchedule": "No schedule set for this group",
+    "today": "Today",
+    "room": "Room",
+    "time": "Time",
+    "attendanceSection": "Attendance History",
+    "gradesSection": "Grade History"
+  },
+  "grades": {
+    "title": "Grade Journal",
+    "dateLabel": "Date",
+    "saveBtn": "Save Grades",
+    "savingBtn": "Saving...",
+    "saved": "Grades saved",
+    "saveError": "Error saving",
+    "loadError": "Error loading",
+    "noStudents": "No students in group",
+    "scoreLabel": "Score (0–10)",
+    "commentLabel": "Comment",
+    "commentPlaceholder": "Comment...",
+    "avgScore": "Average Score",
+    "historyTitle": "Grade History",
+    "myGrades": "My Grades",
+    "noHistory": "No grades yet",
+    "statsTitle": "Grade Statistics",
+    "totalLabel": "Total Graded",
+    "bestLabel": "Best Score",
+    "noGrade": "—"
   }
 }

@@ -103,7 +103,7 @@ const uploadVideoToBunny = async (lessonId, teacherId, fileBuffer, fileName) => 
 const updateProgress = async (userId, lessonId, watchedSeconds) => {
   const { rows: [lesson] } = await query('SELECT duration_seconds FROM lessons WHERE id=$1', [lessonId]);
   if (!lesson) throw new AppError('Lesson not found', 404);
-  const completed = watchedSeconds >= lesson.duration_seconds * 0.9;
+  const completed = lesson.duration_seconds > 0 && watchedSeconds >= lesson.duration_seconds * 0.9;
   await query(`
     INSERT INTO lesson_progress (user_id, lesson_id, watched_seconds, is_completed, completed_at)
     VALUES ($1,$2,$3,$4,$5)

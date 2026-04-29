@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { meetings as meetingsApi } from '../../api';
 import useStore from '../../store/useStore';
 
 export default function StudentMeetings() {
   const navigate = useNavigate();
   const { showToast } = useStore();
+  const { t } = useTranslation();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,7 +21,7 @@ export default function StudentMeetings() {
       const data = await meetingsApi.list();
       setList(data);
     } catch (e) {
-      showToast('Meetinglarni yuklashda xatolik');
+      showToast(t('student.meetings.loadError'));
     } finally {
       setLoading(false);
     }
@@ -39,7 +41,7 @@ export default function StudentMeetings() {
     <div className="page" style={{ maxWidth: 900, margin: '0 auto' }}>
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, color: 'var(--muted)' }}>
-          Yuklanyapti...
+          {t('student.meetings.loading')}
         </div>
       ) : (
         <>
@@ -47,7 +49,7 @@ export default function StudentMeetings() {
           {liveMeetings.length > 0 && (
             <div style={{ marginBottom: 24 }}>
               <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--red)', marginBottom: 12, textTransform: 'uppercase' }}>
-                🔴 Jonli Meetinglar
+                {t('student.meetings.liveHeading')}
               </h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {liveMeetings.map((m) => (
@@ -66,7 +68,7 @@ export default function StudentMeetings() {
                         className="btn btn-gold"
                         onClick={() => navigate(`/student/meetings/${m.id}`)}
                       >
-                        Kirish →
+                        {t('student.meetings.enterBtn')}
                       </button>
                     </div>
                   </div>
@@ -79,7 +81,7 @@ export default function StudentMeetings() {
           {upcomingMeetings.length > 0 ? (
             <div>
               <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)', marginBottom: 12, textTransform: 'uppercase' }}>
-                ⏰ Kelayotgan Meetinglar
+                {t('student.meetings.upcomingHeading')}
               </h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {upcomingMeetings.map((m) => (
@@ -94,7 +96,7 @@ export default function StudentMeetings() {
                           {m.course_title} • {m.teacher_name} · {fmtTime(m.scheduled_at)}
                         </div>
                       </div>
-                      <span className="pill pill-blue">Rejalashtirilgan</span>
+                      <span className="pill pill-blue">{t('student.meetings.scheduledPill')}</span>
                     </div>
                   </div>
                 ))}
@@ -104,8 +106,8 @@ export default function StudentMeetings() {
             <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, textAlign: 'center', color: 'var(--hint)' }}>
               <div>
                 <div style={{ fontSize: 40, marginBottom: 10 }}>📹</div>
-                <div style={{ fontSize: 13 }}>Hozircha meeting yo'q</div>
-                <div style={{ fontSize: 11, marginTop: 4, color: 'var(--muted)' }}>Ustozlari yangi meeting rejalashtirsa, bu yerda ko'rinadi</div>
+                <div style={{ fontSize: 13 }}>{t('student.meetings.noMeetings')}</div>
+                <div style={{ fontSize: 11, marginTop: 4, color: 'var(--muted)' }}>{t('student.meetings.noMeetingsSub')}</div>
               </div>
             </div>
           )}

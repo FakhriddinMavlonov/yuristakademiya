@@ -17,7 +17,13 @@
     "submit": "Gönder",
     "noData": "Veri yok",
     "lessons": "ders",
-    "students": "öğrenci"
+    "students": "öğrenci",
+    "meetingError": "Toplantı hatası",
+    "meetingJoinError": "Toplantıya katılım hatası",
+    "cameraLoading": "Kamera başlatılıyor...",
+    "exitBtn": "✕ Çıkış",
+    "meetingEnded": "Toplantı sona erdi",
+    "roomNotCreated": "Toplantı odası oluşturulmadı"
   },
   "theme": {
     "light": "Açık mod",
@@ -41,7 +47,10 @@
     "users": "Kullanıcılar",
     "payments": "Ödemeler",
     "salaries": "Maaşlar",
-    "telegramMessages": "Telegram Mesajları"
+    "telegramMessages": "Telegram Mesajları",
+    "groups": "Gruplar",
+    "schedule": "Ders Programı",
+    "attendance": "Yoklama"
   },
   "sidebar": {
     "platform": "LMS Platform v1.0",
@@ -468,9 +477,33 @@
       "selectContact": "Bir öğrenci seçin",
       "messagePlaceholder": "Mesaj yazın...",
       "sendError": "Mesaj gönderilemedi"
+    },
+    "studentDetail": {
+      "loading": "Yükleniyor...",
+      "notFound": "Öğrenci bulunamadı",
+      "inactive": "Pasif",
+      "personalInfo": "Kişisel Bilgiler",
+      "primaryPhone": "Ana Telefon",
+      "phone2": "Telefon 2",
+      "phone3": "Telefon 3",
+      "telegram": "Telegram",
+      "telegramLink": "Telegram'da Aç",
+      "avgScore": "Ortalama Puan",
+      "completedLessons": "Tamamlanan Dersler",
+      "totalLessons": "Toplam Dersler",
+      "progressTitle": "Ders Tamamlama İlerlemesi",
+      "lessonsProgress": "{{completed}} / {{total}} ders ({{pct}}%)",
+      "wrongAnswers": "Test Hataları",
+      "chatBtn": "Sohbet",
+      "telegramBtn": "Telegram"
     }
   },
   "admin": {
+    "messages": {
+      "heading": "Telegram Mesajları",
+      "conversations": "Konuşmalar",
+      "empty": "Konuşma yok"
+    },
     "dashboard": {
       "overviewTab": "📊 Genel Bakış",
       "studentsTab": "👥 Öğrenciler ({{count}})",
@@ -550,7 +583,12 @@
       "editHeading": "Kullanıcıyı Düzenle",
       "emailLabel": "E-posta",
       "savingBtn": "Kaydediliyor...",
-      "saveBtn": "Kaydet"
+      "saveBtn": "Kaydet",
+      "newPasswordLabel": "Yeni Şifre (isteğe bağlı)",
+      "newPasswordPlaceholder": "Değiştirmek için girin...",
+      "passwordShort": "Şifre en az 6 karakter olmalıdır",
+      "passwordOk": "Şifre hazır",
+      "passwordChanged": "Şifre başarıyla değiştirildi"
     },
     "payments": {
       "loadError": "Ödemeler yüklenirken hata",
@@ -625,5 +663,113 @@
     "homeworkGraded": "Ödev puanlandı: {{score}} puan",
     "newMeeting": "Yeni toplantı planlandı!",
     "meetingStarted": "Toplantı başladı! Katılın."
+  },
+  "weekdays": ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"],
+  "shifts": {
+    "morning": "Sabah",
+    "afternoon": "Öğleden Sonra",
+    "evening": "Akşam",
+    "weekend": "Hafta Sonu"
+  },
+  "attendanceStatus": {
+    "present": "Geldi",
+    "late": "Geç Geldi",
+    "absent": "Gelmedi",
+    "excused": "Mazeretli"
+  },
+  "groups": {
+    "title": "Gruplar",
+    "createBtn": "+ Yeni Grup",
+    "nameLabel": "Grup Adı",
+    "namePlaceholder": "Örn: 6 Ay 2026 / Akşam",
+    "courseLabel": "Kurs",
+    "teacherLabel": "Öğretmen",
+    "startDateLabel": "Başlangıç Tarihi",
+    "endDateLabel": "Bitiş Tarihi",
+    "shiftLabel": "Seans",
+    "capacityLabel": "Kapasite",
+    "statusLabel": "Durum",
+    "studentsTab": "Öğrenciler",
+    "scheduleTab": "Program",
+    "attendanceTab": "Yoklama",
+    "addStudentLabel": "Öğrenci Ekle",
+    "addStudentPlaceholder": "Öğrenci seçin...",
+    "noGroups": "Henüz grup oluşturulmadı",
+    "noGroupsTeacher": "Size atanmış grup yok",
+    "studentsCount": "{{count}} öğrenci",
+    "createTitle": "Yeni Grup Oluştur",
+    "editTitle": "Grubu Düzenle",
+    "saveBtn": "Kaydet",
+    "savingBtn": "Kaydediliyor...",
+    "deleteConfirm": "Bu grubu silmek istiyor musunuz? Tüm yoklama verileri de silinecek.",
+    "deleted": "Grup silindi",
+    "created": "Grup oluşturuldu",
+    "updated": "Grup güncellendi",
+    "loadError": "Gruplar yüklenemedi",
+    "studentAdded": "Öğrenci gruba eklendi",
+    "studentRemoved": "Öğrenci gruptan çıkarıldı",
+    "scheduleSaved": "Program kaydedildi",
+    "addSlotBtn": "+ Ekle",
+    "startTimeLabel": "Başlangıç",
+    "endTimeLabel": "Bitiş",
+    "roomLabel": "Oda",
+    "noSchedule": "Program belirlenmedi",
+    "attendanceRate": "Yoklama %",
+    "presentCount": "Geldi",
+    "absentCount": "Gelmedi",
+    "gradesTab": "Notlar"
+  },
+  "attendance": {
+    "title": "Yoklama",
+    "dateLabel": "Tarih",
+    "saveBtn": "Yoklamayı Kaydet",
+    "savingBtn": "Kaydediliyor...",
+    "saved": "Yoklama kaydedildi",
+    "saveError": "Kaydetme hatası",
+    "loadError": "Yükleme hatası",
+    "noStudents": "Grupta öğrenci yok",
+    "statsTitle": "Yoklama İstatistikleri",
+    "rateLabel": "Yoklama Oranı",
+    "totalLabel": "Toplam Ders",
+    "presentLabel": "Geldi",
+    "lateLabel": "Geç Geldi",
+    "absentLabel": "Gelmedi",
+    "excusedLabel": "Mazeretli",
+    "historyTitle": "Yoklama Geçmişi",
+    "myAttendance": "Yoklamam",
+    "noHistory": "Yoklama kaydı yok"
+  },
+  "schedule": {
+    "title": "Ders Programım",
+    "myGroup": "Grubum",
+    "weeklySchedule": "Haftalık Program",
+    "noGroup": "Herhangi bir gruba atanmadınız",
+    "noSchedule": "Bu grup için program belirlenmedi",
+    "today": "Bugün",
+    "room": "Oda",
+    "time": "Saat",
+    "attendanceSection": "Yoklama Geçmişi",
+    "gradesSection": "Not Geçmişi"
+  },
+  "grades": {
+    "title": "Not Defteri",
+    "dateLabel": "Tarih",
+    "saveBtn": "Notları Kaydet",
+    "savingBtn": "Kaydediliyor...",
+    "saved": "Notlar kaydedildi",
+    "saveError": "Kaydetme hatası",
+    "loadError": "Yükleme hatası",
+    "noStudents": "Grupta öğrenci yok",
+    "scoreLabel": "Not (0–10)",
+    "commentLabel": "Yorum",
+    "commentPlaceholder": "Yorum...",
+    "avgScore": "Ortalama Not",
+    "historyTitle": "Not Geçmişi",
+    "myGrades": "Notlarım",
+    "noHistory": "Henüz not yok",
+    "statsTitle": "Not İstatistikleri",
+    "totalLabel": "Toplam Not",
+    "bestLabel": "En Yüksek Not",
+    "noGrade": "—"
   }
 }

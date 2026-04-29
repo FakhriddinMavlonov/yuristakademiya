@@ -112,7 +112,7 @@ const createUser = async ({ firstName, lastName, phone, secondPhone, thirdPhone,
 };
 
 const updateUser = async (userId, data) => {
-  const { firstName, lastName, phone, email } = data;
+  const { firstName, lastName, phone, email, password } = data;
   const updates = [];
   const params = [];
   let paramIndex = 1;
@@ -132,6 +132,12 @@ const updateUser = async (userId, data) => {
   if (email) {
     updates.push(`email=$${paramIndex++}`);
     params.push(email);
+  }
+  if (password) {
+    if (password.length < 6) throw new AppError('Password must be at least 6 characters', 400);
+    const hash = await bcrypt.hash(password, 10);
+    updates.push(`password_hash=$${paramIndex++}`);
+    params.push(hash);
   }
 
   if (updates.length === 0) throw new AppError('No fields to update', 400);

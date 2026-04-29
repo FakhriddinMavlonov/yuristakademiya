@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { assignments as assignmentsApi } from '../../api';
 import useStore from '../../store/useStore';
 
@@ -10,6 +11,7 @@ export default function Homework() {
   const [score, setScore] = useState('');
   const [feedback, setFeedback] = useState('');
   const { showToast } = useStore();
+  const { t } = useTranslation();
 
   useEffect(() => { assignmentsApi.pending().then(setItems).catch(() => {}); }, []);
 
@@ -63,16 +65,16 @@ export default function Homework() {
         {/* Detail */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div className="card-hd" style={{ flexShrink: 0 }}>
-            <h3>{selected ? `${selected.first_name} ${selected.last_name} — ${selected.assignment_title}` : "O'quvchini tanlang"}</h3>
+            <h3>{selected ? `${selected.first_name} ${selected.last_name} — ${selected.assignment_title}` : t('teacher.homework.selectStudent')}</h3>
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
             {selected ? (
               <>
                 <div style={{ background: 'var(--bg)', borderRadius: 'var(--r-md)', padding: 14, fontSize: 13, lineHeight: 1.7, color: 'var(--ink)', minHeight: 80 }}>
-                  {selected.content_text || <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>Matn topshirilmagan. Fayl yuklangan bo'lishi mumkin.</span>}
+                  {selected.content_text || <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{t('teacher.homework.noText')}</span>}
                 </div>
                 <div className="fgroup">
-                  <div className="flabel">Ball berish (0–100)</div>
+                  <div className="flabel">{t('teacher.homework.gradeLabel')}</div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {[60, 70, 80, 90, 95, 100].map((s) => (
                       <button
@@ -81,22 +83,22 @@ export default function Homework() {
                         onClick={() => setScore(String(s))}
                       >{s}</button>
                     ))}
-                    <input className="finput" type="number" min={0} max={100} value={score} onChange={(e) => setScore(e.target.value)} placeholder="Boshqa" style={{ width: 80 }} />
+                    <input className="finput" type="number" min={0} max={100} value={score} onChange={(e) => setScore(e.target.value)} placeholder={t('teacher.homework.otherPlaceholder')} style={{ width: 80 }} />
                   </div>
                 </div>
                 <div className="fgroup">
-                  <div className="flabel">Feedback</div>
-                  <textarea className="finput" rows={4} placeholder="O'quvchiga izoh va tavsiya..." value={feedback} onChange={(e) => setFeedback(e.target.value)} />
+                  <div className="flabel">{t('teacher.homework.feedbackLabel')}</div>
+                  <textarea className="finput" rows={4} placeholder={t('teacher.homework.feedbackPlaceholder')} value={feedback} onChange={(e) => setFeedback(e.target.value)} />
                 </div>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                  <button className="btn btn-ghost" onClick={() => setSelected(null)}>Keyinroq</button>
-                  <button className="btn btn-navy" onClick={grade}>Ball berish va yuborish</button>
+                  <button className="btn btn-ghost" onClick={() => setSelected(null)}>{t('teacher.homework.laterBtn')}</button>
+                  <button className="btn btn-navy" onClick={grade}>{t('teacher.homework.gradeBtn')}</button>
                 </div>
               </>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--hint)', gap: 8 }}>
                 <span style={{ fontSize: 36 }}>📝</span>
-                <span style={{ fontSize: 13 }}>Tekshirish uchun uy ishini tanlang</span>
+                <span style={{ fontSize: 13 }}>{t('teacher.homework.checkHint')}</span>
               </div>
             )}
           </div>

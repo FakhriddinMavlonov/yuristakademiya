@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { lessons as lessonsApi, assignments as assignmentsApi } from '../../api';
 import Modal from '../../components/ui/Modal';
 import useStore from '../../store/useStore';
@@ -7,6 +8,7 @@ import useStore from '../../store/useStore';
 export default function TeacherLessons() {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { showToast } = useStore();
   const [list, setList] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -24,7 +26,7 @@ export default function TeacherLessons() {
   }, [courseId]);
 
   const addLesson = async () => {
-    if (!form.title.trim()) return showToast('Dars nomini kiriting');
+    if (!form.title.trim()) return showToast(t('teacher.lessons.enterName'));
     setSaving(true);
     try {
       const l = await lessonsApi.create(courseId, {
@@ -37,48 +39,48 @@ export default function TeacherLessons() {
       setSelected(l);
       setAddModal(false);
       setForm({ title: '', orderNum: '', description: '' });
-      showToast('Dars qo\'shildi!');
-    } catch { showToast('Xatolik!'); }
+      showToast(t('teacher.lessons.added'));
+    } catch { showToast(t('common.error')); }
     finally { setSaving(false); }
   };
 
   const saveHomework = async () => {
-    if (!hwForm.title.trim()) return showToast('Uy ishi nomini kiriting');
+    if (!hwForm.title.trim()) return showToast(t('teacher.lessons.hwEnterName'));
     if (!selected) return;
     setHwSaving(true);
     try {
       if (selected.assignment_id) {
         await assignmentsApi.update(selected.assignment_id, hwForm);
-        showToast('Uy ishi o\'zgartirildi');
+        showToast(t('teacher.lessons.hwUpdated'));
       } else {
         const newAssignment = await assignmentsApi.create(selected.id, hwForm);
         const updated = { ...selected, assignment_id: newAssignment.id, assignment: newAssignment };
         setSelected(updated);
         setList((p) => p.map((l) => l.id === selected.id ? updated : l));
-        showToast('Uy ishi qo\'shildi');
+        showToast(t('teacher.lessons.hwAdded'));
       }
       setHwModal(false);
       setHwForm({ title: '', description: '', deadlineDays: 3, submissionType: 'text' });
-    } catch { showToast('Xatolik yuz berdi'); }
+    } catch { showToast(t('common.error')); }
     finally { setHwSaving(false); }
   };
 
   const deleteHomework = async () => {
     if (!selected?.assignment_id) return;
-    if (!window.confirm('Uy ishini o\'chirmoqchimisiz?')) return;
+    if (!window.confirm(t('teacher.lessons.hwDeleteConfirm'))) return;
     try {
       await assignmentsApi.delete(selected.assignment_id);
       const updated = { ...selected, assignment_id: null, assignment: null };
       setSelected(updated);
       setList((p) => p.map((l) => l.id === selected.id ? updated : l));
-      showToast('Uy ishi o\'chirildi');
-    } catch { showToast('O\'chirishda xatolik'); }
+      showToast(t('teacher.lessons.hwDeleted'));
+    } catch { showToast(t('teacher.lessons.hwDeleteError')); }
   };
 
   const onFileSelected = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !selected) return;
-    if (file.size > 500 * 1024 * 1024) return showToast('Fayl 500MB dan katta bo\'lmasin');
+    if (file.size > 500 * 1024 * 1024) return showToast(t('teacher.lessons.fileTooLarge'));
 
     setUpload({ state: 'uploading', progress: 0, fileName: file.name });
     try {
@@ -89,23 +91,23 @@ export default function TeacherLessons() {
       setSelected(updated);
       setList((p) => p.map((l) => l.id === selected.id ? updated : l));
       setUpload({ state: 'done', progress: 100, fileName: file.name });
-      showToast('Video muvaffaqiyatli yuklandi!');
+      showToast(t('teacher.lessons.videoUploaded'));
     } catch (err) {
       setUpload({ state: 'error', progress: 0, fileName: file.name });
-      showToast(err?.error || 'Video yuklanmadi. Bunny.net sozlamalarini tekshiring.');
+      showToast(err?.error || t('teacher.lessons.videoUploadError'));
     }
     e.target.value = '';
   };
 
   const deleteLesson = async (id) => {
-    if (!window.confirm('Darsni o\'chirmoqchimisiz? Bu amalni qaytarib bo\'lmaydi.')) return;
+    if (!window.confirm(t('teacher.lessons.deleteConfirm'))) return;
     try {
       await lessonsApi.remove(id);
       const updated = list.filter((l) => l.id !== id);
       setList(updated);
       setSelected(updated.find((l) => l.id === selected?.id) || updated[0] || null);
-      showToast('Dars o\'chirildi');
-    } catch { showToast('O\'chirishda xatolik!'); }
+      showToast(t('teacher.lessons.deleted'));
+    } catch { showToast(t('teacher.lessons.deleteError')); }
   };
 
   const togglePublish = async () => {
@@ -114,8 +116,8 @@ export default function TeacherLessons() {
       const updated = { ...selected, is_published: !selected.is_published };
       setSelected(updated);
       setList((p) => p.map((l) => l.id === selected.id ? updated : l));
-      showToast(selected.is_published ? 'Qoralamaga qaytarildi' : 'Nashr etildi!');
-    } catch { showToast('Xatolik!'); }
+      showToast(selected.is_published ? t('teacher.lessons.toDraft') : t('teacher.lessons.published'));
+    } catch { showToast(t('common.error')); }
   };
 
   const fmtDur = (s) => s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : '—';
@@ -271,17 +273,17 @@ export default function TeacherLessons() {
                         </div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: upload.state === 'error' ? 'var(--red)' : 'var(--muted)' }}>
                           {upload.state === 'error'
-                            ? 'Yuklashda xatolik. Qayta urinish uchun bosing'
-                            : 'MP4 video yuklash uchun bosing yoki tashlang'
+                            ? t('teacher.lessons.uploadError')
+                            : t('teacher.lessons.uploadHint')
                           }
                         </div>
                         <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 4 }}>
-                          MP4, WebM · Maksimal 500 MB · Bunny.net CDN
+                          {t('teacher.lessons.uploadHint2')}
                         </div>
                         {upload.state !== 'error' && (
                           <button className="btn btn-navy btn-sm" style={{ marginTop: 12 }}
                             onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
-                            Fayl tanlash
+                            {t('teacher.lessons.selectFile')}
                           </button>
                         )}
                       </div>

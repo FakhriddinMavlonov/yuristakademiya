@@ -3,8 +3,13 @@ const jwt = require('jsonwebtoken');
 const { query } = require('../../config/db');
 const { AppError } = require('../../middleware/errorHandler');
 
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET is not set. Exiting.');
+  process.exit(1);
+}
+
 const ACCESS_SECRET = () => process.env.JWT_SECRET;
-const REFRESH_SECRET = () => (process.env.JWT_SECRET || '') + '_refresh';
+const REFRESH_SECRET = () => process.env.JWT_SECRET + '_refresh';
 
 const signAccessToken = (user) =>
   jwt.sign({ id: user.id, role: user.role }, ACCESS_SECRET(), { expiresIn: '7d' });
@@ -23,6 +28,7 @@ const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString()
 
 const register = async ({ firstName, lastName, phone, password }) => {
   if (!phone || !password || !firstName || !lastName) throw new AppError('Barcha maydonlarni to\'ldiring', 400);
+  if (password.length < 6) throw new AppError('Parol kamida 6 ta belgidan iborat bo\'lishi kerak', 400);
   const normalizedPhone = normalizePhone(phone);
   const exists = await query('SELECT id FROM users WHERE phone=$1', [normalizedPhone]);
   if (exists.rows[0]) throw new AppError('Bu telefon raqam allaqachon ro\'yxatdan o\'tgan', 409);
@@ -37,7 +43,7 @@ const register = async ({ firstName, lastName, phone, password }) => {
     [firstName, lastName, normalizedPhone, hash, otp, otpExpires]
   );
 
-  return { phone: normalizedPhone, otp, message: 'OTP yuborildi. Telegram botga kodni yuboring.' };
+  return { phone: normalizedPhone, message: 'OTP yuborildi. Telegram botga kodni yuboring.' };
 };
 
 const verifyStatus = async (phone) => {

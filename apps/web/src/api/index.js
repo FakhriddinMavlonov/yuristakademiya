@@ -166,6 +166,33 @@ export const chat = {
   send: (contactId, content) => api.post(`/chat/${contactId}/send`, { content }),
 };
 
+export const groups = {
+  list: () => api.get('/groups'),
+  get: (id) => api.get(`/groups/${id}`),
+  create: (d) => api.post('/groups', d),
+  update: (id, d) => api.patch(`/groups/${id}`, d),
+  remove: (id) => api.delete(`/groups/${id}`),
+  addStudent: (id, userId) => api.post(`/groups/${id}/students`, { userId }),
+  removeStudent: (id, userId) => api.delete(`/groups/${id}/students/${userId}`),
+  setSchedule: (id, slots) => api.put(`/groups/${id}/schedule`, { slots }),
+};
+
+export const attendance = {
+  getForDate: (groupId, date) => api.get(`/attendance/group/${groupId}/date/${date}`),
+  markBulk: (groupId, date, records) => api.post(`/attendance/group/${groupId}/date/${date}`, { records }),
+  getStudentHistory: (groupId, studentId) => api.get(`/attendance/group/${groupId}/student/${studentId}`),
+  getGroupStats: (groupId) => api.get(`/attendance/group/${groupId}/stats`),
+  myHistory: () => api.get('/attendance/my'),
+};
+
+export const grades = {
+  getForDate: (groupId, date) => api.get(`/grades/group/${groupId}/date/${date}`),
+  markBulk: (groupId, date, records) => api.post(`/grades/group/${groupId}/date/${date}`, { records }),
+  getStudentHistory: (groupId, studentId) => api.get(`/grades/group/${groupId}/student/${studentId}`),
+  getGroupStats: (groupId) => api.get(`/grades/group/${groupId}/stats`),
+  myHistory: () => api.get('/grades/my'),
+};
+
 export const admin = {
   stats: () => api.get('/admin/stats'),
   studentStats: () => api.get('/admin/student-stats'),

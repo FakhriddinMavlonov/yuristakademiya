@@ -35,6 +35,13 @@ import AdminUsers from './pages/admin/Users';
 import AdminMessages from './pages/admin/Messages';
 import AdminPayments from './pages/admin/Payments';
 import AdminSalaries from './pages/admin/Salaries';
+import AdminGroups from './pages/admin/Groups';
+
+// Teacher groups
+import TeacherGroups from './pages/teacher/Groups';
+
+// Student schedule
+import StudentSchedule from './pages/student/Schedule';
 
 import NotFound from './pages/NotFound';
 
@@ -80,6 +87,7 @@ export default function App() {
           <Route path="meetings/:meetingId/student/:studentId" element={<StudentDetail />} />
           <Route path="chat/:studentId" element={<TeacherChat />} />
           <Route path="chat" element={<TeacherChat />} />
+          <Route path="groups" element={<TeacherGroups />} />
         </Route>
 
         <Route path="/teacher/meetings/:meetingId/join" element={
@@ -100,6 +108,7 @@ export default function App() {
           <Route path="test/:testId" element={<StudentTest />} />
           <Route path="meetings" element={<StudentMeetings />} />
           <Route path="chat" element={<StudentChat />} />
+          <Route path="schedule" element={<StudentSchedule />} />
         </Route>
 
         <Route path="/student/meetings/:meetingId" element={
@@ -118,6 +127,7 @@ export default function App() {
           <Route path="messages" element={<AdminMessages />} />
           <Route path="payments" element={<AdminPayments />} />
           <Route path="salaries" element={<AdminSalaries />} />
+          <Route path="groups" element={<AdminGroups />} />
         </Route>
 
         <Route path="/" element={<Navigate to={defaultPath} replace />} />

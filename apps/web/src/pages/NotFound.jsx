@@ -1,10 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import useStore from '../store/useStore';
 
 export default function NotFound() {
   const navigate = useNavigate();
   const { user } = useStore();
+  const { t } = useTranslation();
   const target = user?.role === 'admin' ? '/admin' : user?.role === 'teacher' ? '/teacher' : '/student';
 
   return (
@@ -24,7 +26,7 @@ export default function NotFound() {
         .nf-card {
           max-width: 520px;
           width: 100%;
-          background: #fff;
+          background: var(--card);
           border-radius: 20px;
           padding: 48px 36px;
           text-align: center;
@@ -56,12 +58,12 @@ export default function NotFound() {
         .nf-title {
           font-size: 22px;
           font-weight: 700;
-          color: #0C1A52;
+          color: var(--ink);
           margin: 0 0 8px;
         }
         .nf-sub {
           font-size: 14px;
-          color: #687085;
+          color: var(--muted);
           margin: 0 0 28px;
           line-height: 1.5;
         }
@@ -102,10 +104,10 @@ export default function NotFound() {
         }
         .nf-btn.primary:hover { box-shadow: 0 14px 30px -8px rgba(30,45,138,.65); }
         .nf-btn.ghost {
-          background: #F1F4FB;
-          color: #0C1A52;
+          background: var(--bg2);
+          color: var(--ink);
         }
-        .nf-btn.ghost:hover { background: #E6EBF8; }
+        .nf-btn.ghost:hover { background: var(--line-2); }
 
         @keyframes nf-rise { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } }
         @keyframes nf-pop { 0% { opacity: 0; transform: scale(.7); } 100% { opacity: 1; transform: scale(1); } }
@@ -120,15 +122,15 @@ export default function NotFound() {
         <span className="nf-orb d" />
 
         <div className="nf-num">404</div>
-        <h1 className="nf-title">Sahifa topilmadi</h1>
-        <p className="nf-sub">Siz qidirgan sahifa mavjud emas yoki ko'chirilgan bo'lishi mumkin.</p>
+        <h1 className="nf-title">{t('notFound.title')}</h1>
+        <p className="nf-sub">{t('notFound.desc')}</p>
 
         <div className="nf-actions">
           <button className="nf-btn primary" onClick={() => navigate(target, { replace: true })}>
-            🏠 Bosh sahifaga qaytish
+            {t('notFound.homeBtn')}
           </button>
           <button className="nf-btn ghost" onClick={() => navigate(-1)}>
-            ← Orqaga
+            {t('notFound.backBtn')}
           </button>
         </div>
       </div>

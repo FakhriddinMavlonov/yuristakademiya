@@ -17,7 +17,7 @@
   --card-2: #F8F9FD;
   --input-bg: var(--bg);
   --input-focus-bg: #ffffff;
-  --green: #0BA360;
+  --green: #0cf791;
   --green-bg: #E8F8EF;
   --red: #E53935;
   --red-bg: #FEECEC;
@@ -38,8 +38,8 @@
 [data-theme="dark"] {
   --navy-text: #8EABFF;
   --ink: #ECEEF8;
-  --muted: #A8B2D4;
-  --hint: #7080A8;
+  --muted: #C0CCE8;
+  --hint: #9AAAD0;
   --line: rgba(255,255,255,0.07);
   --line-2: rgba(255,255,255,0.11);
   --bg: #0F1629;
@@ -101,7 +101,7 @@
 [data-theme="dark"] .btn-red { background: rgba(229,57,53,0.15); color: #FF7B7B; border-color: rgba(229,57,53,0.25); }
 
 /* pills */
-[data-theme="dark"] .pill-green { background: rgba(11,163,96,0.18); color: #3DD68C; }
+[data-theme="dark"] .pill-green { background: rgba(11,163,96,0.18); color: #3484e07c; }
 [data-theme="dark"] .pill-red { background: rgba(229,57,53,0.18); color: #FF7B7B; }
 [data-theme="dark"] .pill-amber { background: rgba(245,158,11,0.18); color: #FFB830; }
 [data-theme="dark"] .pill-blue { background: rgba(37,99,235,0.18); color: #7BA8FF; }
@@ -187,6 +187,8 @@
 [data-theme="dark"] .opt.correct { background: rgba(11,163,96,0.2); border-color: rgba(11,163,96,0.4); }
 [data-theme="dark"] .opt.wrong { background: rgba(229,57,53,0.2); border-color: rgba(229,57,53,0.4); }
 
+[data-theme="dark"] .sb { background: linear-gradient(170deg, #1a36b3 0%, #27366e 55%, #071761 100%); }
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -214,7 +216,7 @@ button, input, select, textarea {
 .sb {
   width: 220px;
   flex-shrink: 0;
-  background: var(--navy);
+  background: linear-gradient(170deg, #102bb1 0%, #1a37ac 55%, #1d307c 100%);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -246,7 +248,7 @@ button, input, select, textarea {
   letter-spacing: -.5px;
   font-family: 'Sora', sans-serif;
 }
-.logo-name { font-size: 12px; font-weight: 700; color: #fff; line-height: 1.25; font-family: 'Sora',sans-serif; }
+.logo-name { font-size: 14px; font-weight: 700; color: #fff; line-height: 1.25; font-family: 'Sora',sans-serif; }
 .logo-sub { font-size: 10px; color: rgba(255,255,255,.38); font-weight: 400; margin-top: 1px; }
 
 .sb-role-switch {
@@ -282,16 +284,17 @@ button, input, select, textarea {
   text-decoration: none;
 }
 .ni:hover { background: rgba(255,255,255,.06); }
-.ni.active { background: rgba(245,166,35,.14); }
+.ni.active { background: rgba(26, 190, 255, 0.267); }
 .ni-icon {
   width: 28px; height: 28px;
   border-radius: 7px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
   font-size: 15px;
+  color: var(--green);
 }
-.ni-text { font-size: 12px; color: rgba(255,255,255,.58); font-weight: 500; flex: 1; }
-.ni.active .ni-text { color: var(--gold); }
+.ni-text { font-size: 13px; color: rgb(255, 255, 255); font-weight: 850; flex: 1; }
+.ni.active .ni-text { color: var(--green); }
 .ni-badge {
   font-size: 9px; font-weight: 700;
   background: var(--red); color: #fff;
@@ -313,8 +316,8 @@ button, input, select, textarea {
   flex-shrink: 0;
   font-family: 'Sora',sans-serif;
 }
-.u-name { font-size: 12px; font-weight: 600; color: #fff; font-family: 'Sora',sans-serif; }
-.u-role { font-size: 10px; color: rgba(255,255,255,.35); }
+.u-name { font-size: 13px; font-weight: 600; color: #fff; font-family: 'Sora',sans-serif; }
+.u-role { font-size: 11px; color: rgba(255,255,255,.35); }
 
 /* ===== MAIN ===== */
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
@@ -622,7 +625,17 @@ button, input, select, textarea {
   background: var(--card); border: .5px solid var(--line);
   border-radius: var(--r-lg); padding: 14px;
   cursor: pointer; transition: all .14s; box-shadow: var(--sh);
+  animation: fadeSlideUp 0.32s cubic-bezier(.22,1,.36,1) both;
 }
+.lib-grid .lib-card:nth-child(1)  { animation-delay:   0ms; }
+.lib-grid .lib-card:nth-child(2)  { animation-delay:  55ms; }
+.lib-grid .lib-card:nth-child(3)  { animation-delay: 110ms; }
+.lib-grid .lib-card:nth-child(4)  { animation-delay: 165ms; }
+.lib-grid .lib-card:nth-child(5)  { animation-delay: 220ms; }
+.lib-grid .lib-card:nth-child(6)  { animation-delay: 275ms; }
+.lib-grid .lib-card:nth-child(7)  { animation-delay: 330ms; }
+.lib-grid .lib-card:nth-child(8)  { animation-delay: 360ms; }
+.lib-grid .lib-card:nth-child(n+9){ animation-delay: 380ms; }
 .lib-card:hover { border-color: var(--line-2); box-shadow: var(--sh-md); }
 .lib-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; font-size: 18px; }
 .lib-name { font-size: 13px; font-weight: 700; margin-bottom: 3px; font-family:'Sora',sans-serif; }
@@ -644,7 +657,15 @@ button, input, select, textarea {
   box-shadow: var(--sh);
   transition: transform .14s, box-shadow .14s;
   cursor: pointer;
+  animation: fadeSlideUp 0.36s cubic-bezier(.22,1,.36,1) both;
 }
+.course-card:nth-child(1)  { animation-delay:   0ms; }
+.course-card:nth-child(2)  { animation-delay:  70ms; }
+.course-card:nth-child(3)  { animation-delay: 140ms; }
+.course-card:nth-child(4)  { animation-delay: 210ms; }
+.course-card:nth-child(5)  { animation-delay: 280ms; }
+.course-card:nth-child(6)  { animation-delay: 340ms; }
+.course-card:nth-child(n+7){ animation-delay: 380ms; }
 .course-card:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
 .cc-banner { height: 110px; display: flex; align-items: flex-end; padding: 12px; position: relative; overflow: hidden; }
 .cc-body { padding: 14px; }
@@ -769,12 +790,18 @@ button, input, select, textarea {
 }
 
 /* Stagger animation for lists */
-.stagger > *:nth-child(1) { animation-delay: 0ms; }
-.stagger > *:nth-child(2) { animation-delay: 40ms; }
-.stagger > *:nth-child(3) { animation-delay: 80ms; }
-.stagger > *:nth-child(4) { animation-delay: 120ms; }
-.stagger > *:nth-child(5) { animation-delay: 160ms; }
-.stagger > *:nth-child(6) { animation-delay: 200ms; }
+.stagger > * { animation: fadeSlideUp 0.30s cubic-bezier(.22,1,.36,1) both; }
+.stagger > *:nth-child(1)  { animation-delay:   0ms; }
+.stagger > *:nth-child(2)  { animation-delay:  45ms; }
+.stagger > *:nth-child(3)  { animation-delay:  90ms; }
+.stagger > *:nth-child(4)  { animation-delay: 135ms; }
+.stagger > *:nth-child(5)  { animation-delay: 180ms; }
+.stagger > *:nth-child(6)  { animation-delay: 225ms; }
+.stagger > *:nth-child(7)  { animation-delay: 270ms; }
+.stagger > *:nth-child(8)  { animation-delay: 315ms; }
+.stagger > *:nth-child(9)  { animation-delay: 350ms; }
+.stagger > *:nth-child(10) { animation-delay: 380ms; }
+.stagger > *:nth-child(n+11){ animation-delay: 400ms; }
 
 /* ===== TOAST ===== */
 .toast {
