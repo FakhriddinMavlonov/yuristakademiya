@@ -39,6 +39,7 @@ app.use('/api/admin', require('./modules/admin/admin.routes'));
 app.use('/api/groups', require('./modules/groups/groups.routes'));
 app.use('/api/attendance', require('./modules/attendance/attendance.routes'));
 app.use('/api/grades', require('./modules/grades/grades.routes'));
+app.use('/api/ai',    require('./modules/ai/ai.routes'));
 
 // 👉 ERROR HANDLER (HAMMASIDAN KEYIN)
 app.use(errorHandler);

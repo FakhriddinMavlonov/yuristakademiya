@@ -193,6 +193,11 @@ export const grades = {
   myHistory: () => api.get('/grades/my'),
 };
 
+export const ai = {
+  generateQuiz:  (data) => api.post('/ai/generate-quiz', data),
+  checkHomework: (data) => api.post('/ai/check-homework', data),
+};
+
 export const admin = {
   stats: () => api.get('/admin/stats'),
   studentStats: () => api.get('/admin/student-stats'),
