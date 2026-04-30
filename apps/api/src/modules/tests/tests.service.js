@@ -35,6 +35,9 @@ const getWithQuestions = async (testId, userId, role) => {
 
 const createOrUpdate = async (lessonId, teacherId, data) => {
   return transaction(async (client) => {
+    console.log('[tests] createOrUpdate lessonId=%s teacherId=%s questions=%d passages=%d',
+      lessonId, teacherId, data.questions?.length, data.passages?.length);
+
     const { rows: [lesson] } = await client.query(`
       SELECT l.id FROM lessons l JOIN courses c ON c.id=l.course_id WHERE l.id=$1 AND c.teacher_id=$2
     `, [lessonId, teacherId]);
@@ -57,18 +60,24 @@ const createOrUpdate = async (lessonId, teacherId, data) => {
     }
 
     if (data.passages !== undefined) {
+      console.log('[tests] updating passages for testId=%s', testId);
       await client.query('UPDATE tests SET passages=$1 WHERE id=$2', [JSON.stringify(data.passages || []), testId]);
     }
 
+    console.log('[tests] inserting %d questions', data.questions.length);
     for (let i = 0; i < data.questions.length; i++) {
       const q = data.questions[i];
+      if (!q || !Array.isArray(q.options)) {
+        throw new AppError(`Question ${i} has invalid structure: ${JSON.stringify(q)}`, 400);
+      }
       const { rows: [qr] } = await client.query(`
         INSERT INTO test_questions (test_id, question_text, points, order_num) VALUES ($1,$2,$3,$4) RETURNING id
       `, [testId, q.questionText, q.points || 2, i + 1]);
       for (let j = 0; j < q.options.length; j++) {
+        const optText = q.options[j]?.text ?? '';
         await client.query(`
           INSERT INTO test_options (question_id, option_text, is_correct, order_num) VALUES ($1,$2,$3,$4)
-        `, [qr.id, q.options[j].text, j === q.correctIndex, j + 1]);
+        `, [qr.id, optText, j === q.correctIndex, j + 1]);
       }
     }
 

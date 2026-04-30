@@ -11,7 +11,7 @@ const errorHandler = (err, req, res, next) => {
     return res.status(err.statusCode).json({ error: err.message });
   }
   console.error('Unexpected error:', err);
-  res.status(500).json({ error: 'Internal server error' });
+  res.status(500).json({ error: err.message || 'Internal server error', stack: err.stack?.split('\n')[0] });
 };
 
 module.exports = { AppError, errorHandler };
