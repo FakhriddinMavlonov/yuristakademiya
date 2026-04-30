@@ -58,7 +58,7 @@ export default function StudentDashboard() {
           <div className="stat-lbl">{t('student.dashboard.activeCourses')}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-num" style={{ color: 'var(--green)' }}>{avgScore || 87}%</div>
+          <div className="stat-num" style={{ color: 'var(--green)' }}>{avgScore || 0}%</div>
           <div className="stat-lbl">{t('student.dashboard.avgScore')}</div>
         </div>
         <div className="stat-card">

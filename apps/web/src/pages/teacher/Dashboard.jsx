@@ -46,12 +46,12 @@ export default function TeacherDashboard() {
     <div className="page">
       <div className="stats-row stagger" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
         <div className="stat-card">
-          <div className="stat-num" style={{ color: 'var(--navy-text)' }}>{totalStudents || 147}</div>
+          <div className="stat-num" style={{ color: 'var(--navy-text)' }}>{totalStudents || 0}</div>
           <div className="stat-lbl">{t('teacher.dashboard.totalStudents')}</div>
           <div className="stat-trend" style={{ color: 'var(--green)' }}>↑ 12 {t('teacher.dashboard.thisMonth')}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-num" style={{ color: 'var(--amber)' }}>{pending.length || 23}</div>
+          <div className="stat-num" style={{ color: 'var(--amber)' }}>{pending.length || 0}</div>
           <div className="stat-lbl">{t('teacher.dashboard.uncheckedHomework')}</div>
           <div className="stat-trend" style={{ color: 'var(--amber)' }}>{t('teacher.dashboard.waiting')}</div>
         </div>
