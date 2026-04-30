@@ -88,7 +88,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="r-2col-eq">
             <div className="card">
               <div className="card-hd"><h3>{t('admin.dashboard.recentPayments')}</h3></div>
               <div style={{ maxHeight: '400px', overflowY: 'auto' }}>

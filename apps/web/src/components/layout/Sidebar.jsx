@@ -136,7 +136,7 @@ const adminNavKeys = [
   { to: '/admin/groups', icon: 'group', key: 'nav.groups' },
 ];
 
-export default function Sidebar({ role }) {
+export default function Sidebar({ role, open, onClose }) {
   const { user, logout, unreadMessages } = useStore();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -154,7 +154,7 @@ export default function Sidebar({ role }) {
       : t('sidebar.studentRole');
 
   return (
-    <div className="sb">
+    <div className={`sb${open ? ' sb-open' : ''}`}>
       <div className="sb-top">
         <div className="sb-mark w-">
           <img src="/logo.jpg" alt=""  className=''
@@ -175,6 +175,7 @@ export default function Sidebar({ role }) {
               to={item.to}
               end={item.end}
               className={({ isActive }) => `ni${isActive ? ' active' : ''}`}
+              onClick={onClose}
             >
               <div className="ni-icon">{IconComponent && <IconComponent />}</div>
               <span className="ni-text">{t(item.key)}</span>

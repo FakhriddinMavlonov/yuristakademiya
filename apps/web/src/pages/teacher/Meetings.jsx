@@ -108,7 +108,7 @@ export default function TeacherMeetings() {
 
   return (
     <div className="page">
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 14 }}>
+      <div className="r-2col-side">
         {/* Main content */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Active meeting */}

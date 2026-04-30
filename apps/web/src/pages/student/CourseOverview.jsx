@@ -83,7 +83,7 @@ export default function CourseOverview() {
       </div>
 
       <div style={{ padding: '40px 20px', maxWidth: 900, margin: '0 auto', width: '100%' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 24 }}>
+        <div className="r-2col-side" style={{ gap: 24 }}>
           <div>
             <div className="card">
               <div className="card-hd"><h2>{t('student.course.about')}</h2></div>

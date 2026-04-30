@@ -31,7 +31,7 @@ export default function TeacherDashboard() {
     return (
       <div className="page">
         <SkeletonStatCards count={4} />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 14 }}>
+        <div className="r-2col-side">
           <SkeletonTable rows={5} cols={4} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <SkeletonCard rows={3} />
@@ -67,7 +67,7 @@ export default function TeacherDashboard() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 14 }}>
+      <div className="r-2col-side">
         <div className="card">
           <div className="card-hd">
             <h3>{t('teacher.dashboard.recentHomework')}</h3>

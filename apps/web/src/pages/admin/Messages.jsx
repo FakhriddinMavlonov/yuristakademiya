@@ -49,7 +49,7 @@ export default function AdminMessages() {
     <div className="page">
       <h2 style={{ marginBottom: 20, fontSize: 20, fontWeight: 700 }}>💬 Telegram Muloqotlari</h2>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 14, height: 'calc(100vh - 180px)' }}>
+      <div className="r-2col" style={{ height: 'calc(100vh - 180px)' }}>
         {/* Conversations list */}
         <div className="card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div className="card-hd" style={{ borderBottom: '1px solid var(--line)', paddingBottom: 12, marginBottom: 0 }}>

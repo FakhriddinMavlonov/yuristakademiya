@@ -30,7 +30,7 @@ export default function Homework() {
 
   return (
     <div className="page">
-      <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 14, minHeight: 0, flex: 1 }}>
+      <div className="r-2col" style={{ minHeight: 0, flex: 1 }}>
         {/* List */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div className="card-hd" style={{ flexShrink: 0 }}>

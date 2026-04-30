@@ -128,7 +128,7 @@ export default function StudentSchedule() {
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 14, alignItems: 'start' }}>
+      <div className="r-2col-side">
         {/* Weekly schedule */}
         <div className="card">
           <div className="card-hd"><h3>{t('schedule.weeklySchedule')}</h3></div>

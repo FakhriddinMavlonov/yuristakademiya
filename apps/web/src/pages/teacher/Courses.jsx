@@ -180,7 +180,7 @@ export default function TeacherCourses() {
       )}
 
       {tab === 'create' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
+        <div className="r-2col-rev">
           <div className="card">
             <div className="card-hd">
               <h3>{editTarget ? t('teacher.courses.editTitle') : t('teacher.courses.createTitle')}</h3>

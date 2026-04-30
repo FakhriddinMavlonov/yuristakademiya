@@ -316,7 +316,7 @@ export default function TestEditor() {
         onChange={onDocumentSelected}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 14, alignItems: 'start' }}>
+      <div className="r-2col-side">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
           {/* Header */}

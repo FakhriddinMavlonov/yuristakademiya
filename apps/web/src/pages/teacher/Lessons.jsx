@@ -133,7 +133,7 @@ export default function TeacherLessons() {
         onChange={onFileSelected}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 14, minHeight: 0, flex: 1 }}>
+      <div className="r-2col" style={{ minHeight: 0, flex: 1 }}>
         {/* Lesson list */}
         <div className="card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div className="card-hd" style={{ flexShrink: 0 }}>

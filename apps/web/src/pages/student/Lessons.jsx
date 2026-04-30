@@ -64,7 +64,7 @@ export default function StudentLessons() {
     : 0;
 
   return (
-    <div className="page" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 14, alignItems: 'start' }}>
+    <div className="page r-2col">
       {/* Lesson sidebar */}
       <div className="card" style={{ position: 'sticky', top: 14 }}>
         <div className="card-hd" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>

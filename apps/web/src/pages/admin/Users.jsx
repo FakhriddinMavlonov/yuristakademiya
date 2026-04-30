@@ -131,7 +131,7 @@ export default function AdminUsers() {
           <div className="card-hd">
             <h3>{t('admin.users.studentsHeading', { count: students.length })}</h3>
           </div>
-          <div style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
+          <div className="tbl-wrap" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
             <table className="tbl">
               <thead>
                 <tr><th>{t('admin.users.nameCol')}</th><th>{t('admin.users.phoneCol')}</th><th>{t('admin.users.phone2Col')}</th><th>{t('admin.users.phone3Col')}</th><th>{t('admin.users.emailCol')}</th><th>{t('admin.users.tgCol')}</th><th>{t('admin.users.statusCol')}</th><th>{t('admin.users.actionsCol')}</th></tr>
@@ -180,7 +180,7 @@ export default function AdminUsers() {
           <div className="card-hd">
             <h3>{t('admin.users.teachersHeading', { count: teachers.length })}</h3>
           </div>
-          <div style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
+          <div className="tbl-wrap" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
             <table className="tbl">
               <thead>
                 <tr><th>{t('admin.users.nameCol')}</th><th>{t('admin.users.phoneCol')}</th><th>{t('admin.users.phone2Col')}</th><th>{t('admin.users.phone3Col')}</th><th>{t('admin.users.emailCol')}</th><th>{t('admin.users.tgCol')}</th><th>{t('admin.users.statusCol')}</th><th>{t('admin.users.actionsCol')}</th></tr>

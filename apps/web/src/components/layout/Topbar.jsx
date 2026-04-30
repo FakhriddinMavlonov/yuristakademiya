@@ -31,7 +31,7 @@ const PAGE_TITLE_KEYS = {
   '/admin/groups': 'nav.groups',
 };
 
-export default function Topbar() {
+export default function Topbar({ onMenuToggle }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -58,6 +58,13 @@ export default function Topbar() {
 
   return (
     <div className="topbar">
+      <button className="hamburger" onClick={onMenuToggle} aria-label="Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
       {showBack && (
         <button className="btn btn-ghost btn-sm" onClick={() => navigate(-1)}>
           {t('common.back')}

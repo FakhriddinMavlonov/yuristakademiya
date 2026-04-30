@@ -39,7 +39,7 @@ export default function StudentDashboard() {
     return (
       <div className="page">
         <SkeletonStatCards count={4} />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 14 }}>
+        <div className="r-2col-side">
           <SkeletonCard rows={3} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <SkeletonCard rows={1} />
@@ -52,7 +52,7 @@ export default function StudentDashboard() {
 
   return (
     <div className="page">
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }} className="stagger">
+      <div className="stats-row stagger" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
         <div className="stat-card">
           <div className="stat-num" style={{ color: 'var(--navy-text)' }}>{enrolled.length}</div>
           <div className="stat-lbl">{t('student.dashboard.activeCourses')}</div>
@@ -71,7 +71,7 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 14 }}>
+      <div className="r-2col-side">
         <div className="card">
           <div className="card-hd"><h3>{t('student.dashboard.myCourses')}</h3></div>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
