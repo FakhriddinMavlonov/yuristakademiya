@@ -125,6 +125,7 @@ const migrate = async () => {
         max_attempts INTEGER DEFAULT 3,
         shuffle_questions BOOLEAN DEFAULT true,
         show_answers_after BOOLEAN DEFAULT true,
+        passages JSONB DEFAULT '[]',
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
@@ -405,6 +406,9 @@ const migrate = async () => {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_attendance_user_id ON attendance(user_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_daily_grades_group_date ON daily_grades(group_id, date)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_daily_grades_user_id ON daily_grades(user_id)`);
+
+    // Schema additions for existing DBs
+    await client.query(`ALTER TABLE tests ADD COLUMN IF NOT EXISTS passages JSONB DEFAULT '[]'`);
 
     await client.query('COMMIT');
     console.log('✅ Migration completed — 26 tables created');

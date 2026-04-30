@@ -56,17 +56,8 @@ const createOrUpdate = async (lessonId, teacherId, data) => {
       await client.query('DELETE FROM test_questions WHERE test_id=$1', [testId]);
     }
 
-    // Save passages — requires migration: ALTER TABLE tests ADD COLUMN IF NOT EXISTS passages JSONB DEFAULT '[]';
-    // Use SAVEPOINT so a missing column doesn't abort the whole transaction
     if (data.passages !== undefined) {
-      await client.query('SAVEPOINT before_passages');
-      try {
-        await client.query('UPDATE tests SET passages=$1 WHERE id=$2', [JSON.stringify(data.passages || []), testId]);
-        await client.query('RELEASE SAVEPOINT before_passages');
-      } catch (e) {
-        await client.query('ROLLBACK TO SAVEPOINT before_passages');
-        if (e.code !== '42703') throw e;
-      }
+      await client.query('UPDATE tests SET passages=$1 WHERE id=$2', [JSON.stringify(data.passages || []), testId]);
     }
 
     for (let i = 0; i < data.questions.length; i++) {
