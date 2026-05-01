@@ -53,7 +53,7 @@ export default function StudentChat() {
 
   return (
     <div style={{ flex: 1, overflow: 'hidden', borderTop: '.5px solid var(--line)' }}>
-      <div className="chat-shell card" style={{ height: 'calc(100vh - 54px)', borderRadius: 0, border: 'none' }}>
+      <div className="chat-shell card" style={{ height: 'calc(100dvh - 54px)', borderRadius: 0, border: 'none' }}>
         <div className={`chat-list${mobileView === 'chat' ? ' panel-hidden' : ''}`}>
           <div style={{ padding: '10px 12px', borderBottom: '.5px solid var(--line)' }}>
             <input className="finput" placeholder="Qidirish..." style={{ fontSize: 12, padding: '6px 10px' }} />
