@@ -606,9 +606,18 @@ button, input, select, textarea {
   flex-shrink: 0;
 }
 @media (max-width: 768px) {
-  .chat-shell { grid-template-columns: 1fr !important; height: calc(100dvh - 54px) !important; }
+  .chat-shell {
+    grid-template-columns: 1fr !important;
+    height: calc(100dvh - 54px) !important;
+    max-height: calc(100dvh - 54px) !important;
+  }
   .chat-back-btn { display: flex; }
-  .chat-input-bar { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  .chat-input-bar {
+    padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    background: var(--card);
+  }
+  /* Keep messages area above input bar — flex pushes input to bottom of chat-main */
+  .chat-main { height: 100%; min-height: 0; }
 }
 
 /* ===== MEETING GRID ===== */
@@ -873,6 +882,10 @@ button, input, select, textarea {
 
 /* ===== MOBILE (≤768px) ===== */
 @media (max-width: 768px) {
+  /* Use dynamic viewport so layout shrinks when soft keyboard opens */
+  html, body { min-height: 100dvh; height: 100dvh; }
+  .shell { height: 100dvh; }
+
   /* Sidebar slides in from left as overlay */
   .sb {
     position: fixed;
@@ -928,6 +941,25 @@ button, input, select, textarea {
     grid-template-columns: 1fr !important;
     height: calc(100dvh - 72px) !important;
     gap: 0 !important;
+  }
+
+  /* Klaviatura ochilganda page yuqoriga sakramasin */
+  body {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+  }
+  .chat-input-bar {
+    /* iOS safari uchun */
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    transition: transform 0.1s ease-out;
+    background: var(--card);
+    border-top: .5px solid var(--line);
+  }
+  
+  /* Chat msgs scroll klaviatura balandligini hisobga olsin */
+  .chat-msgs {
+    padding-bottom: 16px;
   }
 }
 

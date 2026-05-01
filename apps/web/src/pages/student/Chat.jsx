@@ -36,6 +36,35 @@ export default function StudentChat() {
     return () => socket.off('chat:message', handler);
   }, [socket, active]);
 
+useEffect(() => {
+  const shell = document.querySelector('.chat-shell');
+  
+  const handleViewport = () => {
+    if (!window.visualViewport) return;
+    const keyboardHeight = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
+    if (shell) {
+      shell.style.height = `${window.visualViewport.height}px`;
+    }
+    // input-bar ni klaviatura ustiga ko'tar
+    const bar = document.querySelector('.chat-input-bar');
+    if (bar) {
+      bar.style.transform = keyboardHeight > 50
+        ? `translateY(-${keyboardHeight}px)`
+        : 'translateY(0)';
+    }
+  };
+
+  window.visualViewport?.addEventListener('resize', handleViewport);
+  window.visualViewport?.addEventListener('scroll', handleViewport);
+
+  return () => {
+    window.visualViewport?.removeEventListener('resize', handleViewport);
+    window.visualViewport?.removeEventListener('scroll', handleViewport);
+  };
+}, []);
+
+const shellRef = useRef(null);
+
   const send = async () => {
     if (!text.trim() || !active) return;
     try {
@@ -53,7 +82,7 @@ export default function StudentChat() {
 
   return (
     <div style={{ flex: 1, overflow: 'hidden', borderTop: '.5px solid var(--line)' }}>
-      <div className="chat-shell card" style={{ height: 'calc(100dvh - 54px)', borderRadius: 0, border: 'none' }}>
+      <div className="chat-shell card" ref={shellRef} style={{ height: 'calc(100dvh - 54px)', borderRadius: 0, border: 'none' }}>
         <div className={`chat-list${mobileView === 'chat' ? ' panel-hidden' : ''}`}>
           <div style={{ padding: '10px 12px', borderBottom: '.5px solid var(--line)' }}>
             <input className="finput" placeholder="Qidirish..." style={{ fontSize: 12, padding: '6px 10px' }} />
