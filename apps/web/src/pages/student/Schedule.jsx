@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { groups as groupsApi, attendance as attendanceApi, grades as gradesApi } from '../../api';
 import useStore from '../../store/useStore';
+import { SkeletonStatCards, SkeletonCard } from '../../components/ui/Loading';
 
 const STATUS_COLORS = { present: 'var(--green)', late: 'var(--amber)', absent: 'var(--red)', excused: 'var(--muted)' };
 const STATUS_BG = { present: 'var(--green-bg)', late: 'var(--amber-bg)', absent: 'var(--red-bg)', excused: 'var(--bg2)' };
@@ -52,8 +53,15 @@ export default function StudentSchedule() {
 
   if (loading) {
     return (
-      <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
-        <div style={{ color: 'var(--muted)' }}>{t('common.loading')}</div>
+      <div className="page" style={{ maxWidth: 800, margin: '0 auto' }}>
+        <SkeletonStatCards count={4} />
+        <div className="r-2col-side" style={{ marginTop: 14 }}>
+          <SkeletonCard rows={7} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <SkeletonCard rows={2} />
+            <SkeletonCard rows={3} />
+          </div>
+        </div>
       </div>
     );
   }

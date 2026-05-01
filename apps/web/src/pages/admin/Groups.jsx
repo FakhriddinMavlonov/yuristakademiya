@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { groups as groupsApi, admin as adminApi } from '../../api';
 import useStore from '../../store/useStore';
+import { SkeletonGrid } from '../../components/ui/Loading';
 
 const STATUSES = ['active', 'finished', 'cancelled'];
 
@@ -154,7 +155,7 @@ export default function AdminGroups() {
             <button className="btn btn-navy" onClick={openCreate}>{t('groups.createBtn')}</button>
           </div>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>{t('common.loading')}</div>
+            <SkeletonGrid count={4} minWidth={280} />
           ) : list.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: 60, color: 'var(--hint)' }}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>👥</div>

@@ -59,6 +59,8 @@ export default function StudentLessons() {
     setSubmitting(false);
   };
 
+  const [mobileView, setMobileView] = useState('list');
+
   const progress = active && active.lesson_count
     ? Math.round(((lessonList.filter(l => l.is_completed).length) / lessonList.length) * 100)
     : 0;
@@ -66,7 +68,7 @@ export default function StudentLessons() {
   return (
     <div className="page r-2col">
       {/* Lesson sidebar */}
-      <div className="card" style={{ position: 'sticky', top: 14 }}>
+      <div className={`card${mobileView === 'detail' ? ' panel-hidden' : ''}`} style={{ position: 'sticky', top: 14 }}>
         <div className="card-hd" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
           <h3 style={{ fontSize: 13 }}>Darslar</h3>
           <div className="pb-wrap">
@@ -83,7 +85,7 @@ export default function StudentLessons() {
               <div
                 key={lesson.id}
                 className={`lesson-row${isActive ? ' active' : ''}${lesson.locked ? ' locked' : ''}`}
-                onClick={() => selectLesson(lesson, lessonList)}
+                onClick={() => { selectLesson(lesson, lessonList); if (!lesson.locked) setMobileView('detail'); }}
                 style={{ cursor: lesson.locked ? 'not-allowed' : 'pointer' }}
               >
                 <div className="lr-num" style={{
@@ -115,11 +117,14 @@ export default function StudentLessons() {
 
       {/* Main content */}
       {active ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className={mobileView === 'list' ? 'panel-hidden' : ''} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Video */}
           <div className="card">
             <div className="card-hd">
-              <h3>{active.title}</h3>
+              <button className="panel-back-btn" style={{ width: 'auto', borderBottom: 'none', paddingBottom: 0, marginBottom: 0, marginRight: 6 }} onClick={() => setMobileView('list')}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <h3 style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{active.title}</h3>
               {active.is_completed && <span className="pill pill-green">✓ Tugallandi</span>}
             </div>
             <div className="card-body" style={{ padding: 0 }}>

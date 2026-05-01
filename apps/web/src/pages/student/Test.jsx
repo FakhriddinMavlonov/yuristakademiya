@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { tests as testsApi } from '../../api';
+import { SkeletonCard, SkeletonStatCards } from '../../components/ui/Loading';
 
 export default function StudentTest() {
   const { testId } = useParams();
@@ -15,6 +16,7 @@ export default function StudentTest() {
   const [result, setResult] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [currentQ, setCurrentQ] = useState(0);
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -26,8 +28,9 @@ export default function StudentTest() {
   const startTest = async () => {
     try {
       const attempt = await testsApi.start(testId);
-      setAttemptId(attempt.attemptId);  // ← fixed: was attempt.id
+      setAttemptId(attempt.attemptId);
       setAnswers({});
+      setCurrentQ(0);
       if (testData.time_limit_minutes) setTimeLeft(testData.time_limit_minutes * 60);
       setPhase('active');
     } catch (err) {
@@ -76,8 +79,11 @@ export default function StudentTest() {
 
   if (phase === 'loading') {
     return (
-      <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
-        <div style={{ color: 'var(--hint)', fontSize: 13 }}>{t('common.loading')}</div>
+      <div className="page" style={{ maxWidth: 560, margin: '0 auto' }}>
+        <SkeletonStatCards count={3} />
+        <div style={{ marginTop: 14 }}>
+          <SkeletonCard rows={5} />
+        </div>
       </div>
     );
   }
@@ -121,92 +127,111 @@ export default function StudentTest() {
   }
 
   if (phase === 'active' && testData) {
-    const timerColor = timeLeft !== null && timeLeft < 60 ? 'var(--red)' : timeLeft < 300 ? 'var(--amber)' : 'var(--navy)';
+    const q = testData.questions[currentQ];
+    const timerColor = timeLeft !== null && timeLeft < 60 ? '#ff6b6b' : timeLeft < 300 ? '#ffa94d' : '#fff';
+    const OPT_STYLES = [
+      { bg: '#c92a2a', hoverBg: '#e03131', icon: '▲' },
+      { bg: '#1864ab', hoverBg: '#1971c2', icon: '◆' },
+      { bg: '#e67700', hoverBg: '#f59f00', icon: '●' },
+      { bg: '#2b8a3e', hoverBg: '#2f9e44', icon: '■' },
+    ];
+    const passage = (testData.passages || []).find((p) => p.beforeQuestion === currentQ + 1 || p.beforeIndex === currentQ);
+    const selectedOpt = answers[q.id];
+    const isLastQ = currentQ === testData.questions.length - 1;
+    const unanswered = testData.questions.filter(qq => !answers[qq.id]).length;
+
     return (
-      <div className="page" style={{ maxWidth: 680, margin: '0 auto' }}>
-        <div className="card" style={{ marginBottom: 12 }}>
-          <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Sora' }}>{testData.title}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{t('student.test.answered', { answered, total })}</div>
+      <div style={{ position: 'fixed', inset: 0, background: 'linear-gradient(135deg,#0a1628,#0c1a52)', display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 10 }}>
+        <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,.1)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{testData.title}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.8)', fontFamily: 'Sora', whiteSpace: 'nowrap' }}>
+              {currentQ + 1} / {testData.questions.length}
             </div>
             {timeLeft !== null && (
-              <div style={{ fontFamily: 'Sora', fontSize: 22, fontWeight: 800, color: timerColor, minWidth: 60, textAlign: 'center' }}>
+              <div style={{ fontFamily: 'Sora', fontSize: 20, fontWeight: 800, color: timerColor, minWidth: 56, textAlign: 'right', transition: 'color .3s' }}>
                 {formatTime(timeLeft)}
               </div>
             )}
-            <div className="pb-wrap" style={{ width: 80 }}>
-              <div className="pb-fill" style={{ width: `${total ? (answered / total) * 100 : 0}%`, background: 'var(--blue)' }} />
-            </div>
+          </div>
+          <div style={{ height: 5, background: 'rgba(255,255,255,.15)', borderRadius: 99 }}>
+            <div style={{ height: '100%', borderRadius: 99, background: 'var(--gold)', transition: 'width .3s ease', width: `${((currentQ + 1) / testData.questions.length) * 100}%` }} />
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {testData.questions.map((q, qi) => {
-            const passage = (testData.passages || []).find((p) => p.beforeIndex === qi);
-            return (<React.Fragment key={q.id}>
-            {passage && (
-              <div style={{ background: '#F0F4FF', border: '.5px solid rgba(27,42,107,.15)', borderRadius: 12, padding: '18px 20px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--navy)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: .5 }}>
-                  {t('student.test.readText')}
-                </div>
-                <div style={{ fontSize: 13, lineHeight: 1.8, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{passage.text}</div>
-              </div>
-            )}
-            <div className="card">
-              <div className="card-body">
-                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, lineHeight: 1.5 }}>
-                  <span style={{ color: 'var(--muted)', marginRight: 6 }}>{qi + 1}.</span>{q.question_text}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  {(q.options || []).map((opt) => {
-                    const selected = answers[q.id] === opt.id;
-                    return (
-                      <div
-                        key={opt.id}
-                        onClick={() => setAnswers((p) => ({ ...p, [q.id]: opt.id }))}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-                          borderRadius: 9, cursor: 'pointer', transition: 'all .15s',
-                          border: `.5px solid ${selected ? 'var(--navy)' : 'var(--line-2)'}`,
-                          background: selected ? 'var(--navy)' : 'var(--bg)',
-                          color: selected ? '#fff' : 'var(--ink)',
-                        }}
-                      >
-                        <div style={{
-                          width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                          border: `.5px solid ${selected ? 'rgba(255,255,255,.5)' : 'var(--line-2)'}`,
-                          background: selected ? 'rgba(255,255,255,.2)' : 'transparent',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                          {selected && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }} />}
-                        </div>
-                        {/* ← fixed: was opt.option_text, backend returns opt.text */}
-                        <span style={{ fontSize: 13 }}>{opt.text || opt.option_text}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 0' }}>
+          {passage && (
+            <div style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 8 }}>📖 Matnni o'qing</div>
+              <div style={{ fontSize: 12, lineHeight: 1.8, color: 'rgba(255,255,255,.85)', whiteSpace: 'pre-wrap' }}>{passage.text}</div>
             </div>
-            </React.Fragment>);
-          })}
+          )}
+
+          <div style={{ textAlign: 'center', marginBottom: 20 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: '50%', background: 'var(--gold)', color: '#000', fontWeight: 800, fontFamily: 'Sora', fontSize: 14, marginBottom: 12 }}>{currentQ + 1}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', lineHeight: 1.5, maxWidth: 600, margin: '0 auto' }}>{q.question_text}</div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 640, margin: '0 auto', paddingBottom: 16 }}>
+            {(q.options || []).map((opt, oi) => {
+              const style = OPT_STYLES[oi % 4];
+              const isSelected = selectedOpt === opt.id;
+              return (
+                <div
+                  key={opt.id}
+                  onClick={() => setAnswers(p => ({ ...p, [q.id]: opt.id }))}
+                  style={{
+                    background: isSelected ? style.hoverBg : style.bg,
+                    borderRadius: 14,
+                    padding: '14px 12px',
+                    minHeight: 70,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    cursor: 'pointer',
+                    transition: 'transform .12s, box-shadow .12s, background .1s',
+                    transform: isSelected ? 'scale(0.97)' : 'scale(1)',
+                    boxShadow: isSelected ? `0 0 0 3px #fff, 0 4px 20px rgba(0,0,0,.4)` : '0 4px 14px rgba(0,0,0,.35)',
+                    color: '#fff',
+                    userSelect: 'none',
+                  }}
+                >
+                  <span style={{ fontSize: 22, flexShrink: 0, opacity: 0.9 }}>{style.icon}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4 }}>{opt.text || opt.option_text}</span>
+                  {isSelected && <span style={{ marginLeft: 'auto', fontSize: 18, flexShrink: 0 }}>✓</span>}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          {answered < total && (
-            <span style={{ fontSize: 12, color: 'var(--muted)', alignSelf: 'center' }}>
-              {t('student.test.remaining', { count: total - answered })}
-            </span>
-          )}
+        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           <button
-            className="btn btn-gold"
-            style={{ minWidth: 160 }}
-            disabled={answered < total || submitting}
-            onClick={submitTest}
+            onClick={() => setCurrentQ(q => Math.max(0, q - 1))}
+            disabled={currentQ === 0}
+            style={{ background: 'rgba(255,255,255,.12)', border: 'none', borderRadius: 10, padding: '10px 18px', color: '#fff', fontSize: 13, fontWeight: 600, cursor: currentQ === 0 ? 'not-allowed' : 'pointer', opacity: currentQ === 0 ? 0.4 : 1 }}
           >
-            {submitting ? t('student.test.checkingBtn') : t('student.test.finishBtn')}
+            ← Oldingi
           </button>
+          <div style={{ flex: 1, textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,.5)' }}>
+            {unanswered > 0 ? `${unanswered} ta javobsiz` : '✓ Hammasi javoblandi'}
+          </div>
+          {!isLastQ ? (
+            <button
+              onClick={() => setCurrentQ(q => q + 1)}
+              style={{ background: 'var(--gold)', border: 'none', borderRadius: 10, padding: '10px 18px', color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            >
+              Keyingi →
+            </button>
+          ) : (
+            <button
+              onClick={submitTest}
+              disabled={unanswered > 0 || submitting}
+              style={{ background: unanswered > 0 ? 'rgba(255,255,255,.2)' : 'var(--green)', border: 'none', borderRadius: 10, padding: '10px 20px', color: unanswered > 0 ? 'rgba(255,255,255,.5)' : '#fff', fontSize: 13, fontWeight: 700, cursor: unanswered > 0 ? 'not-allowed' : 'pointer', transition: 'background .2s' }}
+            >
+              {submitting ? '⏳ Tekshirilmoqda...' : '✓ Testni yakunlash'}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -214,13 +239,12 @@ export default function StudentTest() {
 
   if (phase === 'result' && result) {
     const passed = result.passed;
-    // ← fixed: result.scorePct (not score_pct), result.passScorePct (not pass_score_pct)
     const scorePct = result.scorePct ?? 0;
     const passScorePct = result.passScorePct || testData?.pass_score_pct || 90;
 
     return (
-      <div className="page" style={{ maxWidth: 520, margin: '0 auto' }}>
-        <div className="card">
+      <div className="page" style={{ maxWidth: 520, margin: '0 auto', background: 'var(--bg)', overflowY: 'auto' }}>
+        <div className="card" style={{ animation: 'fadeSlideUp 0.4s ease-out' }}>
           <div className="card-body" style={{ textAlign: 'center', padding: '36px 24px' }}>
             <div style={{ fontSize: 56, marginBottom: 12 }}>{passed ? '🏆' : '😔'}</div>
             <h2 style={{ fontFamily: 'Sora', fontSize: 22, marginBottom: 6, color: passed ? 'var(--green)' : 'var(--red)' }}>
@@ -250,12 +274,10 @@ export default function StudentTest() {
               }} />
             </div>
 
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              {!passed && (
-                <button className="btn btn-gold" onClick={() => { setPhase('intro'); setAnswers({}); setResult(null); }}>
-                  {t('student.test.retryBtn')}
-                </button>
-              )}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button className="btn btn-gold" onClick={() => { setPhase('intro'); setAnswers({}); setResult(null); setCurrentQ(0); }}>
+                {t('student.test.retryBtn')}
+              </button>
               <button className="btn btn-navy" onClick={() => navigate(-1)}>
                 {passed ? t('student.test.continueBtn') : t('student.test.backToLessons')}
               </button>

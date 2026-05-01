@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { groups as groupsApi, attendance as attendanceApi, grades as gradesApi } from '../../api';
 import useStore from '../../store/useStore';
+import { SkeletonGrid, SkeletonCard } from '../../components/ui/Loading';
 
 const STATUS_COLORS = { present: 'var(--green)', late: 'var(--amber)', absent: 'var(--red)', excused: 'var(--muted)' };
 const STATUS_BG = { present: 'var(--green-bg)', late: 'var(--amber-bg)', absent: 'var(--red-bg)', excused: 'var(--bg2)' };
@@ -149,7 +150,7 @@ export default function TeacherGroups() {
       <div className="page">
         <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 14 }}>{t('groups.title')}</h2>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>{t('common.loading')}</div>
+          <SkeletonGrid count={4} minWidth={280} />
         ) : list.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: 60, color: 'var(--hint)' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>👥</div>
@@ -254,7 +255,7 @@ export default function TeacherGroups() {
           </div>
 
           {attendLoading ? (
-            <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>{t('common.loading')}</div>
+            <SkeletonCard rows={5} />
           ) : attendRecords.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>{t('attendance.noStudents')}</div>
           ) : (
@@ -310,7 +311,7 @@ export default function TeacherGroups() {
           </div>
 
           {gradeLoading ? (
-            <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>{t('common.loading')}</div>
+            <SkeletonCard rows={5} />
           ) : gradeRecords.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>{t('grades.noStudents')}</div>
           ) : (

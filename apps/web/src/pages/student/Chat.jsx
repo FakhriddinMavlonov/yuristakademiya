@@ -7,6 +7,7 @@ export default function StudentChat() {
   const [active, setActive] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
+  const [mobileView, setMobileView] = useState('list');
   const msgRef = useRef(null);
   const { socket, showToast } = useStore();
 
@@ -46,13 +47,14 @@ export default function StudentChat() {
 
   const selectContact = (c) => {
     setActive(c);
+    setMobileView('chat');
     setContacts((p) => p.map((x) => x.id === c.id ? { ...x, unread_count: 0 } : x));
   };
 
   return (
     <div style={{ flex: 1, overflow: 'hidden', borderTop: '.5px solid var(--line)' }}>
       <div className="chat-shell card" style={{ height: 'calc(100vh - 54px)', borderRadius: 0, border: 'none' }}>
-        <div className="chat-list">
+        <div className={`chat-list${mobileView === 'chat' ? ' panel-hidden' : ''}`}>
           <div style={{ padding: '10px 12px', borderBottom: '.5px solid var(--line)' }}>
             <input className="finput" placeholder="Qidirish..." style={{ fontSize: 12, padding: '6px 10px' }} />
           </div>
@@ -78,10 +80,16 @@ export default function StudentChat() {
           )}
         </div>
 
-        <div className="chat-main">
+        <div className={`chat-main${mobileView === 'list' ? ' panel-hidden' : ''}`}>
           {active ? (
             <>
               <div className="chat-topbar">
+                <button className="chat-back-btn" onClick={() => setMobileView('list')}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                  </svg>
+                  Orqaga
+                </button>
                 <div className="ci-av" style={{ background: '#FEF3DC', color: '#B87A10', width: 34, height: 34, borderRadius: 9 }}>
                   {active.first_name?.[0]}{active.last_name?.[0]}
                 </div>

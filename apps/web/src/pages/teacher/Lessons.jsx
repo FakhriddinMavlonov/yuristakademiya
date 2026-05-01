@@ -123,6 +123,8 @@ export default function TeacherLessons() {
   const fmtDur = (s) => s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : '—';
   const fmtSize = (bytes) => bytes > 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.round(bytes / 1024)} KB`;
 
+  const [mobileView, setMobileView] = useState('list');
+
   return (
     <div className="page">
       <input
@@ -135,7 +137,7 @@ export default function TeacherLessons() {
 
       <div className="r-2col" style={{ minHeight: 0, flex: 1 }}>
         {/* Lesson list */}
-        <div className="card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div className={`card${mobileView === 'detail' ? ' panel-hidden' : ''}`} style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div className="card-hd" style={{ flexShrink: 0 }}>
             <h3>Darslar <span style={{ color: 'var(--muted)', fontWeight: 400, fontSize: 12 }}>({list.length})</span></h3>
             <button className="btn btn-navy btn-sm" onClick={() => setAddModal(true)}>+ Dars</button>
@@ -145,7 +147,7 @@ export default function TeacherLessons() {
               <div
                 key={l.id}
                 className={`lesson-row${selected?.id === l.id ? ' active-lesson' : ''}`}
-                onClick={() => { setSelected(l); setUpload({ state: 'idle', progress: 0, fileName: '' }); }}
+                onClick={() => { setSelected(l); setUpload({ state: 'idle', progress: 0, fileName: '' }); setMobileView('detail'); }}
               >
                 <div className="lesson-num" style={{
                   background: l.is_published ? 'var(--green-bg)' : 'var(--bg2)',
@@ -174,10 +176,13 @@ export default function TeacherLessons() {
 
         {/* Lesson detail */}
         {selected ? (
-          <div className="card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div className="card-hd" style={{ flexShrink: 0 }}>
-              <h3>{selected.order_num}-dars: {selected.title}</h3>
-              <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+          <div className={`card${mobileView === 'list' ? ' panel-hidden' : ''}`} style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div className="card-hd" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 8 }}>
+              <button className="panel-back-btn" style={{ width: 'auto', marginRight: 6, borderBottom: 'none', paddingBottom: 0, marginBottom: 0 }} onClick={() => setMobileView('list')}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <h3 style={{ flex: 1, minWidth: 0, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected.order_num}-dars: {selected.title}</h3>
+              <div style={{ display: 'flex', gap: 6 }}>
                 <button
                   className="btn btn-navy btn-sm"
                   onClick={() => navigate(`/teacher/lessons/${selected.id}/test`)}
@@ -362,7 +367,7 @@ export default function TeacherLessons() {
             </div>
           </div>
         ) : (
-          <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--hint)' }}>
+          <div className={`card${mobileView === 'list' ? ' panel-hidden' : ''}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--hint)' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 40, marginBottom: 10 }}>📖</div>
               <div>Chapdan darsni tanlang</div>

@@ -2,13 +2,14 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { tests as testsApi, lessons as lessonsApi, ai as aiApi } from '../../api';
 import useStore from '../../store/useStore';
+import { SkeletonCard } from '../../components/ui/Loading';
 
 const emptyQ = () => ({ questionText: '', points: 2, options: [{ text: '' }, { text: '' }, { text: '' }, { text: '' }], correctIndex: 0 });
 const genId  = () => Math.random().toString(36).slice(2);
 
 const OPT_COLORS = ['ai-opt-A', 'ai-opt-B', 'ai-opt-C', 'ai-opt-D'];
 const OPT_ICONS  = ['▲', '◆', '●', '■'];
-const COUNTS     = [5, 10, 15, 20, 25, 30];
+const COUNTS     = [5, 10, 15, 20, 30, 50, 80];
 const DIFFS = [
   { key: 'easy',   icon: '🐢', label: 'Oson',    pts: '1 ball',  cls: 'easy'   },
   { key: 'medium', icon: '🦊', label: "O'rta",   pts: '2 ball',  cls: 'medium' },
@@ -268,8 +269,11 @@ export default function TestEditor() {
 
   if (loading) {
     return (
-      <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
-        <div style={{ color: 'var(--hint)', fontSize: 13 }}>Yuklanmoqda...</div>
+      <div className="page">
+        <div className="r-2col-side">
+          <SkeletonCard rows={6} />
+          <SkeletonCard rows={3} />
+        </div>
       </div>
     );
   }

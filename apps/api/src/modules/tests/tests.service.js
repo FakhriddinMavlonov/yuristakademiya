@@ -95,9 +95,6 @@ const startAttempt = async (userId, testId) => {
 
   const passed = attempts.some(a => a.passed);
   if (passed) throw new AppError('Test already passed', 400);
-  if (test.max_attempts && attempts.length >= test.max_attempts) {
-    throw new AppError('Max attempts reached', 400);
-  }
 
   const { rows: [attempt] } = await query(`
     INSERT INTO test_attempts (user_id, test_id) VALUES ($1,$2) RETURNING id

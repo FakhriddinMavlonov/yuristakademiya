@@ -60,12 +60,15 @@ export default function Homework() {
   };
 
   const getColor = (i) => COLORS[i % COLORS.length].split(':');
+  const [mobileView, setMobileView] = useState('list');
+
+  const handleSelect = (h) => { selectItem(h); setMobileView('detail'); };
 
   return (
     <div className="page">
       <div className="r-2col" style={{ minHeight: 0, flex: 1 }}>
         {/* Left: list */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div className={`card${mobileView === 'detail' ? ' panel-hidden' : ''}`} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div className="card-hd" style={{ flexShrink: 0 }}>
             <h3>Uy ishlari</h3>
             <span className="pill pill-amber">{items.length} ta kutmoqda</span>
@@ -75,7 +78,7 @@ export default function Homework() {
               const [bg, tc] = getColor(i);
               return (
                 <div key={h.id} className={`hw-row${selected?.id === h.id ? ' selected' : ''}`}
-                  onClick={() => selectItem(h)}>
+                  onClick={() => handleSelect(h)}>
                   <div style={{ width: 36, height: 36, borderRadius: 9, background: bg, color: tc, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0, fontFamily: 'Sora' }}>
                     {h.first_name?.[0]}{h.last_name?.[0]}
                   </div>
@@ -97,9 +100,13 @@ export default function Homework() {
         </div>
 
         {/* Right: detail */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div className="card-hd" style={{ flexShrink: 0 }}>
-            <h3>{selected ? `${selected.first_name} ${selected.last_name} — ${selected.assignment_title}` : t('teacher.homework.selectStudent')}</h3>
+        <div className={`card${mobileView === 'list' ? ' panel-hidden' : ''}`} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div className="card-hd" style={{ flexShrink: 0, flexDirection: 'column', alignItems: 'stretch', gap: 0 }}>
+            <button className="panel-back-btn" onClick={() => setMobileView('list')}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              Orqaga
+            </button>
+            <h3 style={{ margin: 0 }}>{selected ? `${selected.first_name} ${selected.last_name} — ${selected.assignment_title}` : t('teacher.homework.selectStudent')}</h3>
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
             {selected ? (

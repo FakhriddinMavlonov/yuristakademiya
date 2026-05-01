@@ -216,7 +216,7 @@ button, input, select, textarea {
 .sb {
   width: 220px;
   flex-shrink: 0;
-  background: linear-gradient(170deg, #102bb1 0%, #1a37ac 55%, #1d307c 100%);
+  background: linear-gradient(170deg, #002aff 0%, #1a37ac 55%, #1d307c 100%);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -284,17 +284,20 @@ button, input, select, textarea {
   text-decoration: none;
 }
 .ni:hover { background: rgba(255,255,255,.06); }
-.ni.active { background: rgba(26, 190, 255, 0.267); }
+.ni.active { background: rgba(92, 200, 243, 0.603); }
 .ni-icon {
   width: 28px; height: 28px;
   border-radius: 7px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
   font-size: 15px;
-  color: var(--green);
+  color: white;
 }
+
+.ni.active .ni-icon{ color: rgb(255, 255, 255)}
+
 .ni-text { font-size: 13px; color: rgb(255, 255, 255); font-weight: 850; flex: 1; }
-.ni.active .ni-text { color: var(--green); }
+.ni.active .ni-text { color: rgb(255, 255, 255); font-weight: 550}
 .ni-badge {
   font-size: 9px; font-weight: 700;
   background: var(--red); color: #fff;
@@ -588,6 +591,24 @@ button, input, select, textarea {
 .chat-input-bar { padding: 10px 14px; border-top: .5px solid var(--line); display: flex; gap: 8px; flex-shrink: 0; }
 .chat-input { flex: 1; padding: 9px 13px; border-radius: var(--r-md); border: .5px solid var(--line-2); background: var(--input-bg); font-size: 13px; color: var(--ink); outline: none; resize: none; transition: border .12s, background .12s; }
 .chat-input:focus { border-color: var(--navy-3); background: var(--input-focus-bg); }
+.chat-back-btn {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--navy-text);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+@media (max-width: 768px) {
+  .chat-shell { grid-template-columns: 1fr !important; }
+  .chat-back-btn { display: flex; }
+}
 
 /* ===== MEETING GRID ===== */
 .meeting-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(180px,1fr)); gap: 10px; }
@@ -896,6 +917,51 @@ button, input, select, textarea {
   .frow [style*="grid-template-columns"],
   [style*="grid-template-columns: 1fr 120px"],
   [style*="grid-template-columns: 36px 1fr"] { grid-template-columns: 1fr !important; }
+
+  /* Two-panel pages (Homework, Lessons, etc.) */
+  .panel-hidden { display: none !important; }
+
+  /* Messaging full-height layout on mobile */
+  .msg-page { padding: 8px !important; }
+  .msg-layout {
+    grid-template-columns: 1fr !important;
+    height: calc(100dvh - 72px) !important;
+    gap: 0 !important;
+  }
+}
+
+/* ===== TWO-PANEL LAYOUT HELPERS ===== */
+
+/* Back button — hidden on desktop, shown on mobile */
+.panel-back-btn {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--navy-text);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 0 10px;
+  border-bottom: .5px solid var(--line);
+  margin-bottom: 4px;
+  width: 100%;
+}
+.panel-back-btn svg { flex-shrink: 0; }
+@media (max-width: 768px) {
+  .panel-back-btn { display: flex; }
+}
+
+/* Messaging layout */
+.msg-page { padding: 16px !important; gap: 0 !important; overflow: hidden !important; }
+.msg-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 14px;
+  height: calc(100vh - 88px);
+  overflow: hidden;
+  align-items: stretch;
 }
 
 /* ===== AI QUIZ GENERATOR ===== */
