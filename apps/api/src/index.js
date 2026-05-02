@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const { initSocket } = require('./config/socket');
 const { initTelegramBot } = require('./config/telegram');
+const { startReminderScheduler } = require('./modules/meetings/meetings.scheduler');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const path = require('path');
@@ -11,11 +12,12 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// SOCKET + BOT
+// SOCKET + BOT + SCHEDULER
 initSocket(server);
 if (process.env.TELEGRAM_BOT_ENABLED === 'true') {
   initTelegramBot();
 }
+startReminderScheduler();
 
 // MIDDLEWARE
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));

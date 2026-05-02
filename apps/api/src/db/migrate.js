@@ -468,11 +468,23 @@ const migrate = async () => {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_mock_exam_results_user ON mock_exam_results(user_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id)`);
 
+    // meeting_reminder_log — tracks which reminders have already been sent
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS meeting_reminder_log (
+        id           SERIAL PRIMARY KEY,
+        meeting_id   INTEGER NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+        reminder_type VARCHAR(10) NOT NULL,
+        sent_at      TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(meeting_id, reminder_type)
+      )
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_reminder_log_meeting ON meeting_reminder_log(meeting_id)`);
+
     // Schema additions for existing DBs
     await client.query(`ALTER TABLE tests ADD COLUMN IF NOT EXISTS passages JSONB DEFAULT '[]'`);
 
     await client.query('COMMIT');
-    console.log('✅ Migration completed — 30 tables created');
+    console.log('✅ Migration completed — 31 tables created');
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('❌ Migration failed:', err.message);
