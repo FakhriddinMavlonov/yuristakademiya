@@ -119,6 +119,64 @@ const create = async (teacherId, data) => {
   return meeting;
 };
 
+const ringStudents = async (meeting, teacherId) => {
+  // Collect recipients from all applicable sources so late-enrolled students are covered too
+  let userIdSet = new Set();
+
+  // Always include explicit participants
+  const { rows: explicit } = await query(
+    'SELECT user_id FROM meeting_participants WHERE meeting_id=$1',
+    [meeting.id]
+  );
+  explicit.forEach((r) => userIdSet.add(r.user_id));
+
+  // For audience=all or group-based meetings, also pull from enrollments/group_students
+  if (meeting.audience_type === 'all' && meeting.course_id) {
+    const { rows: enrolled } = await query(
+      'SELECT user_id FROM enrollments WHERE course_id=$1',
+      [meeting.course_id]
+    );
+    enrolled.forEach((r) => userIdSet.add(r.user_id));
+  }
+  if (meeting.group_id) {
+    const { rows: groupStudents } = await query(
+      'SELECT user_id FROM group_students WHERE group_id=$1',
+      [meeting.group_id]
+    );
+    groupStudents.forEach((r) => userIdSet.add(r.user_id));
+  }
+
+  const userIds = [...userIdSet];
+  if (!userIds.length) {
+    console.warn(`[meetings] meeting ${meeting.id} has no participants — nobody to ring`);
+    return;
+  }
+  const { rows: [teacher] } = await query('SELECT first_name, last_name FROM users WHERE id=$1', [teacherId]);
+  const teacherName = teacher ? `${teacher.first_name} ${teacher.last_name}` : 'Ustoz';
+
+  console.log(`[meetings] ringing ${userIds.length} students for meeting ${meeting.id}: [${userIds.join(',')}]`);
+
+  // Socket (real-time) — for users with the site open
+  for (const uid of userIds) {
+    notify(uid, 'meeting:started', {
+      meetingId: meeting.id,
+      title: meeting.title,
+      teacherName,
+      roomUrl: meeting.daily_room_url,
+    });
+  }
+  // Web push — for users with the site closed (PWA)
+  pushSvc.sendToUsers(userIds, {
+    type: 'meeting:started',
+    title: `📞 ${teacherName} qo'ng'iroq qilmoqda`,
+    body: meeting.title,
+    tag: `meeting-${meeting.id}`,
+    meetingId: meeting.id,
+    url: `/student/meetings/${meeting.id}`,
+  }).then((r) => console.log(`[push] meeting ring → sent=${r.sent}, failed=${r.failed}, skipped=${r.skipped || false}`))
+    .catch((e) => console.error('[push] meeting ring failed:', e.message));
+};
+
 const updateStatus = async (meetingId, teacherId, status) => {
   const { rows } = await query(`
     UPDATE meetings SET status=$1 WHERE id=$2 AND teacher_id=$3 RETURNING *
@@ -126,25 +184,7 @@ const updateStatus = async (meetingId, teacherId, status) => {
   if (!rows[0]) throw new AppError('Meeting not found', 404);
 
   if (status === 'live') {
-    const meeting = rows[0];
-    const { rows: participants } = await query('SELECT user_id FROM meeting_participants WHERE meeting_id=$1', [meetingId]);
-    const userIds = participants.map((p) => p.user_id);
-    const { rows: [teacher] } = await query('SELECT first_name, last_name FROM users WHERE id=$1', [teacherId]);
-    const teacherName = teacher ? `${teacher.first_name} ${teacher.last_name}` : 'Ustoz';
-
-    // Socket (real-time) — for users with the site open
-    for (const uid of userIds) {
-      notify(uid, 'meeting:started', { meetingId, title: meeting.title, teacherName, roomUrl: meeting.daily_room_url });
-    }
-    // Web push — for users with the site closed
-    pushSvc.sendToUsers(userIds, {
-      type: 'meeting:started',
-      title: `📞 ${teacherName} qo'ng'iroq qilmoqda`,
-      body: meeting.title,
-      tag: `meeting-${meetingId}`,
-      meetingId,
-      url: `/student/meetings/${meetingId}`,
-    }).catch((e) => console.error('Push send failed:', e.message));
+    await ringStudents(rows[0], teacherId);
   }
   return rows[0];
 };
@@ -190,10 +230,22 @@ const getJoinUrl = async (meetingId, userId, isOwner = false) => {
     const dailyRoom = await createDailyRoom(meetingId, roomName);
     roomUrl = dailyRoom.url;
     await query('UPDATE meetings SET daily_room_name=$1, daily_room_url=$2 WHERE id=$3', [roomName, roomUrl, meetingId]);
+    meeting.daily_room_name = roomName;
+    meeting.daily_room_url = roomUrl;
+  }
+
+  const isTeacher = meeting.teacher_id === userId;
+
+  // When the teacher joins, auto-transition to 'live' and ring all students.
+  // This ensures students always get a call even if the teacher skips the
+  // explicit "Start" button and clicks "Join" directly.
+  if (isTeacher && meeting.status !== 'live' && meeting.status !== 'ended') {
+    await query("UPDATE meetings SET status='live' WHERE id=$1", [meetingId]);
+    meeting.status = 'live';
+    await ringStudents(meeting, userId);
   }
 
   const { rows: [user] } = await query('SELECT id, first_name, last_name FROM users WHERE id=$1', [userId]);
-  const isTeacher = meeting.teacher_id === userId;
   const token = await generateDailyToken(roomName, userId, `${user.first_name} ${user.last_name}`, isTeacher);
 
   return {

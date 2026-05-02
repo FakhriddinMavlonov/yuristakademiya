@@ -249,7 +249,7 @@ button, input, select, textarea {
   font-family: 'Sora', sans-serif;
 }
 .logo-name { font-size: 14px; font-weight: 700; color: #fff; line-height: 1.25; font-family: 'Sora',sans-serif; }
-.logo-sub { font-size: 10px; color: rgba(255,255,255,.38); font-weight: 400; margin-top: 1px; }
+.logo-sub { font-size: 10px; color: rgba(255, 255, 255, 0.38); font-weight: 400; margin-top: 1px; }
 
 .sb-role-switch {
   margin: 10px 12px;

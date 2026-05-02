@@ -85,10 +85,29 @@ const useStore = create((set, get) => ({
   login: (user, accessToken, refreshToken) => {
     tokenStore.setAccess(accessToken);
     if (refreshToken) tokenStore.setRefresh(refreshToken);
-    const socket = io(import.meta.env.VITE_SOCKET_URL, {
+
+    // Disconnect any existing socket first (avoid duplicates on auto-relogin)
+    const existing = get().socket;
+    if (existing) try { existing.disconnect(); } catch {}
+
+    // Socket URL: explicit env > derived from API URL > current origin (proxy in dev)
+    let socketUrl = import.meta.env.VITE_SOCKET_URL;
+    if (!socketUrl) {
+      const apiUrl = import.meta.env.VITE_API_URL;
+      if (apiUrl) socketUrl = apiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
+    }
+    const socket = io(socketUrl || undefined, {
       auth: { token: accessToken },
-      transports: ["websocket"],
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
     });
+
+    socket.on('connect', () => console.log('[socket] connected', socket.id));
+    socket.on('connect_error', (e) => console.warn('[socket] connect error:', e.message));
+    socket.on('disconnect', (r) => console.log('[socket] disconnected:', r));
+
     socket.on("chat:message", () =>
       set((s) => ({ unreadMessages: s.unreadMessages + 1 })),
     );
@@ -99,7 +118,7 @@ const useStore = create((set, get) => ({
       get().showToast(i18n.t("toast.newMeeting")),
     );
     socket.on("meeting:started", (payload) => {
-      // student: trigger incoming-call modal with ringing
+      console.log('[socket] meeting:started received', payload);
       if (user?.role === 'student') {
         set({ incomingMeeting: payload });
       } else {
