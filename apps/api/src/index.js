@@ -40,6 +40,8 @@ app.use('/api/groups', require('./modules/groups/groups.routes'));
 app.use('/api/attendance', require('./modules/attendance/attendance.routes'));
 app.use('/api/grades', require('./modules/grades/grades.routes'));
 app.use('/api/ai',    require('./modules/ai/ai.routes'));
+app.use('/api/exams', require('./modules/exams/exams.routes'));
+app.use('/api/push',  require('./modules/push/push.routes'));
 
 // 👉 ERROR HANDLER (HAMMASIDAN KEYIN)
 app.use(errorHandler);

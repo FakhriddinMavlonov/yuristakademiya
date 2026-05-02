@@ -390,6 +390,62 @@ const migrate = async () => {
       )
     `);
 
+    // 27. mock_exams (haftalik mock imtihonlar)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS mock_exams (
+        id SERIAL PRIMARY KEY,
+        teacher_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        topic TEXT,
+        scheduled_at TIMESTAMPTZ NOT NULL,
+        location VARCHAR(255) DEFAULT 'O''quv markaz',
+        duration_minutes INTEGER DEFAULT 90,
+        max_score INTEGER DEFAULT 100,
+        status VARCHAR(20) DEFAULT 'scheduled' CHECK (status IN ('scheduled','completed','cancelled')),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    // 28. mock_exam_groups (mock_exam <-> group many-to-many)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS mock_exam_groups (
+        id SERIAL PRIMARY KEY,
+        exam_id INTEGER NOT NULL REFERENCES mock_exams(id) ON DELETE CASCADE,
+        group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+        UNIQUE(exam_id, group_id)
+      )
+    `);
+
+    // 29. mock_exam_results (har bir o'quvchi natijasi)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS mock_exam_results (
+        id SERIAL PRIMARY KEY,
+        exam_id INTEGER NOT NULL REFERENCES mock_exams(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        score NUMERIC(5,2),
+        feedback TEXT,
+        posted_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(exam_id, user_id)
+      )
+    `);
+
+    // 30. push_subscriptions (web push notifications)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        endpoint TEXT NOT NULL UNIQUE,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        user_agent TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    // group_id column for meetings (so meeting can be tied to a group, not just course)
+    await client.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS group_id INTEGER REFERENCES groups(id) ON DELETE SET NULL`);
+
     // Create indexes
     await client.query(`CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_payments_course_id ON payments(course_id)`);
@@ -406,12 +462,17 @@ const migrate = async () => {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_attendance_user_id ON attendance(user_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_daily_grades_group_date ON daily_grades(group_id, date)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_daily_grades_user_id ON daily_grades(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_mock_exams_teacher ON mock_exams(teacher_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_mock_exams_scheduled ON mock_exams(scheduled_at)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_mock_exam_groups_group ON mock_exam_groups(group_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_mock_exam_results_user ON mock_exam_results(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id)`);
 
     // Schema additions for existing DBs
     await client.query(`ALTER TABLE tests ADD COLUMN IF NOT EXISTS passages JSONB DEFAULT '[]'`);
 
     await client.query('COMMIT');
-    console.log('✅ Migration completed — 26 tables created');
+    console.log('✅ Migration completed — 30 tables created');
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('❌ Migration failed:', err.message);

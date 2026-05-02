@@ -16,9 +16,17 @@ const LANGS = [
 export default function Login() {
   const [tab, setTab] = useState('login');
   const navigate = useNavigate();
-  const { login, language, setLanguage, theme, setTheme } = useStore();
+  const { login, language, setLanguage, theme, setTheme, user } = useStore();
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
+
+  // If already logged in, redirect to default home
+  useEffect(() => {
+    if (user) {
+      const home = user.role === 'admin' ? '/admin' : user.role === 'teacher' ? '/teacher' : '/student';
+      navigate(home, { replace: true });
+    }
+  }, [user]);
 
   useEffect(() => {
     const username = searchParams.get('username');

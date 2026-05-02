@@ -2,6 +2,7 @@ const axios = require('axios');
 const { query } = require('../../config/db');
 const { AppError } = require('../../middleware/errorHandler');
 const { notify } = require('../../config/socket');
+const pushSvc = require('../push/push.service');
 
 const DAILY_API = 'https://api.daily.co/v1';
 const DAILY_API_KEY = process.env.DAILY_API_KEY;
@@ -68,13 +69,14 @@ const list = async (userId, role) => {
   const { rows } = await query(`
     SELECT m.*, c.title AS course_title, u.first_name||' '||u.last_name AS teacher_name
     FROM meetings m
-    JOIN courses c ON c.id = m.course_id
+    LEFT JOIN courses c ON c.id = m.course_id
     JOIN users u ON u.id = m.teacher_id
     WHERE m.status IN ('scheduled','live')
-      AND (m.audience_type='all' OR EXISTS(
-        SELECT 1 FROM meeting_participants WHERE meeting_id=m.id AND user_id=$1
-      ))
-      AND EXISTS (SELECT 1 FROM enrollments WHERE user_id=$1 AND course_id=m.course_id)
+      AND (
+        EXISTS(SELECT 1 FROM meeting_participants WHERE meeting_id=m.id AND user_id=$1)
+        OR (m.group_id IS NOT NULL AND EXISTS(SELECT 1 FROM group_students WHERE group_id=m.group_id AND user_id=$1))
+        OR (m.audience_type='all' AND m.course_id IS NOT NULL AND EXISTS(SELECT 1 FROM enrollments WHERE user_id=$1 AND course_id=m.course_id))
+      )
     ORDER BY m.scheduled_at ASC
   `, [userId]);
   return rows;
@@ -82,25 +84,38 @@ const list = async (userId, role) => {
 
 const create = async (teacherId, data) => {
   const roomName = `meeting-${Date.now()}`;
-  const dailyRoom = await createDailyRoom(data.courseId, roomName);
+  const dailyRoom = await createDailyRoom(data.courseId || data.groupId, roomName);
 
   const { rows: [meeting] } = await query(`
-    INSERT INTO meetings (course_id, teacher_id, title, description, scheduled_at, duration_minutes, audience_type, daily_room_name, daily_room_url)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *
-  `, [data.courseId, teacherId, data.title, data.description, data.scheduledAt, data.durationMinutes || 60, data.audienceType || 'all', roomName, dailyRoom.url]);
+    INSERT INTO meetings (course_id, group_id, teacher_id, title, description, scheduled_at, duration_minutes, audience_type, daily_room_name, daily_room_url)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *
+  `, [
+    data.courseId || null, data.groupId || null, teacherId,
+    data.title, data.description, data.scheduledAt,
+    data.durationMinutes || 60, data.audienceType || 'all', roomName, dailyRoom.url,
+  ]);
 
+  let recipientIds = [];
   if (data.audienceType === 'selected' && data.participantIds?.length) {
     for (const uid of data.participantIds) {
       await query('INSERT INTO meeting_participants (meeting_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [meeting.id, uid]);
     }
-  } else if (data.audienceType === 'all') {
+    recipientIds = data.participantIds;
+  } else if (data.groupId) {
+    const { rows } = await query('SELECT user_id FROM group_students WHERE group_id=$1', [data.groupId]);
+    for (const e of rows) {
+      await query('INSERT INTO meeting_participants (meeting_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [meeting.id, e.user_id]);
+    }
+    recipientIds = rows.map((r) => r.user_id);
+  } else if (data.audienceType === 'all' && data.courseId) {
     const { rows: enrolled } = await query('SELECT user_id FROM enrollments WHERE course_id=$1', [data.courseId]);
     for (const e of enrolled) {
       await query('INSERT INTO meeting_participants (meeting_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [meeting.id, e.user_id]);
-      notify(e.user_id, 'meeting:scheduled', { meeting });
     }
+    recipientIds = enrolled.map((r) => r.user_id);
   }
 
+  for (const uid of recipientIds) notify(uid, 'meeting:scheduled', { meeting });
   return meeting;
 };
 
@@ -111,10 +126,25 @@ const updateStatus = async (meetingId, teacherId, status) => {
   if (!rows[0]) throw new AppError('Meeting not found', 404);
 
   if (status === 'live') {
+    const meeting = rows[0];
     const { rows: participants } = await query('SELECT user_id FROM meeting_participants WHERE meeting_id=$1', [meetingId]);
-    for (const p of participants) {
-      notify(p.user_id, 'meeting:started', { meetingId });
+    const userIds = participants.map((p) => p.user_id);
+    const { rows: [teacher] } = await query('SELECT first_name, last_name FROM users WHERE id=$1', [teacherId]);
+    const teacherName = teacher ? `${teacher.first_name} ${teacher.last_name}` : 'Ustoz';
+
+    // Socket (real-time) — for users with the site open
+    for (const uid of userIds) {
+      notify(uid, 'meeting:started', { meetingId, title: meeting.title, teacherName, roomUrl: meeting.daily_room_url });
     }
+    // Web push — for users with the site closed
+    pushSvc.sendToUsers(userIds, {
+      type: 'meeting:started',
+      title: `📞 ${teacherName} qo'ng'iroq qilmoqda`,
+      body: meeting.title,
+      tag: `meeting-${meetingId}`,
+      meetingId,
+      url: `/student/meetings/${meetingId}`,
+    }).catch((e) => console.error('Push send failed:', e.message));
   }
   return rows[0];
 };

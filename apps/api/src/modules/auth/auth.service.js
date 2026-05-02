@@ -12,10 +12,10 @@ const ACCESS_SECRET = () => process.env.JWT_SECRET;
 const REFRESH_SECRET = () => process.env.JWT_SECRET + '_refresh';
 
 const signAccessToken = (user) =>
-  jwt.sign({ id: user.id, role: user.role }, ACCESS_SECRET(), { expiresIn: '7d' });
+  jwt.sign({ id: user.id, role: user.role }, ACCESS_SECRET(), { expiresIn: '365d' });
 
 const signRefreshToken = (user) =>
-  jwt.sign({ id: user.id, role: user.role, type: 'refresh' }, REFRESH_SECRET(), { expiresIn: '14d' });
+  jwt.sign({ id: user.id, role: user.role, type: 'refresh' }, REFRESH_SECRET(), { expiresIn: '730d' });
 
 const normalizePhone = (phone) => {
   const digits = phone.replace(/\D/g, '');

@@ -115,6 +115,7 @@ const teacherNavKeys = [
   { to: '/teacher/homework', icon: 'checkSquare', key: 'nav.homework', badge: 'hw' },
   { to: '/teacher/library', icon: 'folder', key: 'nav.library' },
   { to: '/teacher/meetings', icon: 'calendar', key: 'nav.meetings' },
+  { to: '/teacher/exams', icon: 'clipboard', key: 'nav.exams' },
   { to: '/teacher/chat', icon: 'message', key: 'nav.chat', badge: 'msg' },
   { to: '/teacher/groups', icon: 'group', key: 'nav.groups' },
 ];
@@ -123,8 +124,9 @@ const studentNavKeys = [
   { to: '/student', icon: 'home', key: 'nav.dashboard', end: true },
   { to: '/student/courses', icon: 'book', key: 'nav.courses' },
   { to: '/student/meetings', icon: 'video', key: 'nav.meetings' },
+  { to: '/student/exams', icon: 'clipboard', key: 'nav.exams' },
   { to: '/student/chat', icon: 'message', key: 'nav.askTeacher', badge: 'msg' },
-  { to: '/student/schedule', icon: 'clipboard', key: 'nav.schedule' },
+  { to: '/student/schedule', icon: 'calendar', key: 'nav.schedule' },
 ];
 
 const adminNavKeys = [

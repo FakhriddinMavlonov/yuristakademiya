@@ -4,9 +4,14 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './i18n';
 import './index.css';
+import { registerSW } from './lib/push';
 
 const savedTheme = localStorage.getItem('ya_theme') || 'light';
 document.documentElement.setAttribute('data-theme', savedTheme);
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { registerSW(); });
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter>

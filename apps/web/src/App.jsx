@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import useStore from './store/useStore';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import useStore, { tokenStore } from './store/useStore';
 import { auth as authApi } from './api';
 import Shell from './components/layout/Shell';
 import Toast from './components/ui/Toast';
+import IncomingCall from './components/ui/IncomingCall';
 import Login from './pages/auth/Login';
+import { ensurePushSubscription } from './lib/push';
 
 // Teacher pages
 import TeacherDashboard from './pages/teacher/Dashboard';
@@ -39,34 +41,79 @@ import AdminGroups from './pages/admin/Groups';
 
 // Teacher groups
 import TeacherGroups from './pages/teacher/Groups';
+import TeacherExams from './pages/teacher/Exams';
 
 // Student schedule
 import StudentSchedule from './pages/student/Schedule';
+import StudentExams from './pages/student/Exams';
 
 import NotFound from './pages/NotFound';
 
 const ProtectedRoute = ({ children, roles }) => {
-  const { user } = useStore();
+  const { user, authResolving } = useStore();
+  if (authResolving) return <SplashLoader />;
   if (!user) return <Navigate to="/login" replace />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
   return children;
 };
 
+function SplashLoader() {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'linear-gradient(135deg,#0C1A52 0%,#1E2D8A 100%)', color: '#fff',
+      flexDirection: 'column', gap: 16,
+    }}>
+      <div style={{
+        width: 56, height: 56, borderRadius: '50%',
+        border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#fff',
+        animation: 'spin .8s linear infinite',
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
 export default function App() {
-  const { token, login, user } = useStore();
-  const navigate = useNavigate();
+  const { login, user, authResolving, setAuthResolving } = useStore();
 
   useEffect(() => {
-    if (token && !user) {
-      authApi.me().then((u) => login(u, token)).catch(() => {});
+    let cancelled = false;
+    const access = tokenStore.getAccess();
+    const refresh = tokenStore.getRefresh();
+    if (!access && !refresh) {
+      setAuthResolving(false);
+      return;
     }
-  }, [token]);
+    // /auth/me will use access token; if it's expired, the response interceptor
+    // automatically refreshes via the cookie refresh token and retries.
+    authApi.me()
+      .then((u) => {
+        if (cancelled) return;
+        login(u, tokenStore.getAccess());
+      })
+      .catch(() => {
+        if (cancelled) return;
+        tokenStore.clear();
+        setAuthResolving(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      ensurePushSubscription().catch(() => {});
+    }
+  }, [user?.id]);
 
   const defaultPath = user?.role === 'admin' ? '/admin' : user?.role === 'teacher' ? '/teacher' : user?.role === 'student' ? '/student' : '/login';
+
+  if (authResolving) return <SplashLoader />;
 
   return (
     <>
       <Toast />
+      <IncomingCall />
       <Routes>
         <Route path="/login" element={<Login />} />
 
@@ -88,6 +135,7 @@ export default function App() {
           <Route path="chat/:studentId" element={<TeacherChat />} />
           <Route path="chat" element={<TeacherChat />} />
           <Route path="groups" element={<TeacherGroups />} />
+          <Route path="exams" element={<TeacherExams />} />
         </Route>
 
         <Route path="/teacher/meetings/:meetingId/join" element={
@@ -109,6 +157,7 @@ export default function App() {
           <Route path="meetings" element={<StudentMeetings />} />
           <Route path="chat" element={<StudentChat />} />
           <Route path="schedule" element={<StudentSchedule />} />
+          <Route path="exams" element={<StudentExams />} />
         </Route>
 
         <Route path="/student/meetings/:meetingId" element={

@@ -1,10 +1,11 @@
 import axios from 'axios';
+import useStore, { tokenStore } from '../store/useStore';
 
 const baseURL = import.meta.env.VITE_API_URL || '/api';
 const api = axios.create({ baseURL, withCredentials: true });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('ya_token');
+  const token = tokenStore.getAccess();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -22,9 +23,9 @@ api.interceptors.response.use(
   async (err) => {
     const original = err.config;
     if (err.response?.status === 401 && !original._retry) {
-      const refreshToken = localStorage.getItem('ya_refresh_token');
+      const refreshToken = tokenStore.getRefresh();
       if (!refreshToken) {
-        localStorage.removeItem('ya_token');
+        tokenStore.clear();
         window.location.href = '/login';
         return Promise.reject(err.response?.data || err);
       }
@@ -42,19 +43,16 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const { data } = await axios.post('/api/auth/refresh', { refreshToken });
+        const { data } = await axios.post(`${baseURL}/auth/refresh`, { refreshToken });
         const newToken = data.accessToken;
-        localStorage.setItem('ya_token', newToken);
-        // update store token without importing store (avoid circular)
-        const { default: useStore } = await import('../store/useStore');
+        tokenStore.setAccess(newToken);
         useStore.getState().setToken(newToken);
         processQueue(null, newToken);
         original.headers.Authorization = `Bearer ${newToken}`;
         return api(original);
       } catch (refreshErr) {
         processQueue(refreshErr, null);
-        localStorage.removeItem('ya_token');
-        localStorage.removeItem('ya_refresh_token');
+        tokenStore.clear();
         window.location.href = '/login';
         return Promise.reject(refreshErr);
       } finally {
@@ -196,6 +194,21 @@ export const grades = {
 export const ai = {
   generateQuiz:  (data) => api.post('/ai/generate-quiz', data),
   checkHomework: (data) => api.post('/ai/check-homework', data),
+};
+
+export const exams = {
+  list: () => api.get('/exams'),
+  create: (d) => api.post('/exams', d),
+  update: (id, d) => api.patch(`/exams/${id}`, d),
+  remove: (id) => api.delete(`/exams/${id}`),
+  students: (id) => api.get(`/exams/${id}/students`),
+  postResults: (id, results) => api.post(`/exams/${id}/results`, { results }),
+};
+
+export const push = {
+  publicKey: () => api.get('/push/public-key'),
+  subscribe: (subscription) => api.post('/push/subscribe', { subscription }),
+  unsubscribe: (endpoint) => api.post('/push/unsubscribe', { endpoint }),
 };
 
 export const admin = {
