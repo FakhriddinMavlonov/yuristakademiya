@@ -1,9 +1,39 @@
 const TelegramBot = require('node-telegram-bot-api');
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
 const { query } = require('./db');
 
 let bot = null;
 const userRegistrationState = {}; // Track registration state per user
+
+// Cached TTS voice file — fetched once, reused for every "ring" message.
+const RING_AUDIO_DIR = path.join(__dirname, '..', '..', 'assets');
+const RING_AUDIO_PATH = path.join(RING_AUDIO_DIR, 'ring-call.mp3');
+const RING_TEXT = "Ustoz qo'ng'iroq qilmoqda. Dars boshlanmoqda.";
+let cachedRingFileId = null; // Telegram file_id, cached after first upload
+
+const downloadRingAudio = () => new Promise((resolve, reject) => {
+  if (fs.existsSync(RING_AUDIO_PATH) && fs.statSync(RING_AUDIO_PATH).size > 0) {
+    return resolve(RING_AUDIO_PATH);
+  }
+  fs.mkdirSync(RING_AUDIO_DIR, { recursive: true });
+
+  const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(RING_TEXT)}&tl=uz&client=tw-ob`;
+  const file = fs.createWriteStream(RING_AUDIO_PATH);
+  https.get(ttsUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+    if (res.statusCode !== 200) {
+      file.close(); fs.unlink(RING_AUDIO_PATH, () => {});
+      return reject(new Error(`TTS HTTP ${res.statusCode}`));
+    }
+    res.pipe(file);
+    file.on('finish', () => file.close(() => resolve(RING_AUDIO_PATH)));
+  }).on('error', (err) => {
+    file.close(); fs.unlink(RING_AUDIO_PATH, () => {});
+    reject(err);
+  });
+});
 
 const generateUsername = (firstName, lastName) => {
   const base = (firstName[0] + lastName).toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -253,33 +283,56 @@ const initTelegramBot = () => {
 };
 
 // Send a "phone-call style" meeting invitation to a Telegram chat.
-// Payload: { meetingId, title, teacherName, magicToken }
+// Sends an audio message + caption + inline button — single message, with sound.
 const sendMeetingCall = async ({ chatId, meetingId, title, teacherName, magicToken }) => {
   if (!bot) return false;
   if (!chatId) return false;
   const webUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   const joinUrl = `${webUrl}/auto-join?token=${encodeURIComponent(magicToken)}&meetingId=${meetingId}`;
 
-  const text =
-    `📞 *Qo'ng'iroq kelmoqda\\!*\n\n` +
+  const caption =
+    `📞 *Sizga ustoz qo'ng'iroq qilmoqda\\!*\n\n` +
     `👨‍🏫 ${escapeMd(teacherName || 'Ustoz')}\n` +
     `📚 ${escapeMd(title || 'Dars')}\n\n` +
-    `_Ushbu tugma orqali qabul qiling:_`;
+    `_Pastdagi tugma orqali qabul qiling 👇_`;
 
+  const replyMarkup = {
+    inline_keyboard: [
+      [{ text: '📞 Qabul qilish va qo\'shilish', url: joinUrl }],
+    ],
+  };
+
+  // Try to send as audio (with sound) — falls back to plain text if audio fails.
   try {
-    await bot.sendMessage(chatId, text, {
+    // Reuse cached file_id if we've already uploaded the ring audio once.
+    const audioInput = cachedRingFileId || await downloadRingAudio();
+    const sent = await bot.sendAudio(chatId, audioInput, {
+      caption,
       parse_mode: 'MarkdownV2',
       disable_notification: false,
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '📞 Qabul qilish va qo\'shilish', url: joinUrl }],
-        ],
-      },
+      title: "Qo'ng'iroq",
+      performer: 'Yurist Akademiya',
+      reply_markup: replyMarkup,
     });
+    // Cache file_id so subsequent calls don't re-upload the file
+    if (!cachedRingFileId && sent?.audio?.file_id) {
+      cachedRingFileId = sent.audio.file_id;
+      console.log('[telegram] cached ring audio file_id');
+    }
     return true;
   } catch (e) {
-    console.error('[telegram] sendMeetingCall failed:', e.message);
-    return false;
+    console.warn('[telegram] sendAudio failed, falling back to text:', e.message);
+    try {
+      await bot.sendMessage(chatId, caption, {
+        parse_mode: 'MarkdownV2',
+        disable_notification: false,
+        reply_markup: replyMarkup,
+      });
+      return true;
+    } catch (e2) {
+      console.error('[telegram] sendMeetingCall text fallback failed:', e2.message);
+      return false;
+    }
   }
 };
 
