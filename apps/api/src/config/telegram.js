@@ -252,4 +252,35 @@ const initTelegramBot = () => {
   console.log('✅ Telegram bot started (registration mode)');
 };
 
-module.exports = { initTelegramBot };
+// Send a "phone-call style" meeting invitation to a Telegram chat.
+// Payload: { meetingId, title, teacherName, magicToken }
+const sendMeetingCall = async ({ chatId, meetingId, title, teacherName, magicToken }) => {
+  if (!bot) return false;
+  if (!chatId) return false;
+  const webUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const joinUrl = `${webUrl}/auto-join?token=${encodeURIComponent(magicToken)}&meetingId=${meetingId}`;
+
+  const text =
+    `📞 *Qo'ng'iroq kelmoqda\\!*\n\n` +
+    `👨‍🏫 ${escapeMd(teacherName || 'Ustoz')}\n` +
+    `📚 ${escapeMd(title || 'Dars')}\n\n` +
+    `_Ushbu tugma orqali qabul qiling:_`;
+
+  try {
+    await bot.sendMessage(chatId, text, {
+      parse_mode: 'MarkdownV2',
+      disable_notification: false,
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📞 Qabul qilish va qo\'shilish', url: joinUrl }],
+        ],
+      },
+    });
+    return true;
+  } catch (e) {
+    console.error('[telegram] sendMeetingCall failed:', e.message);
+    return false;
+  }
+};
+
+module.exports = { initTelegramBot, sendMeetingCall };

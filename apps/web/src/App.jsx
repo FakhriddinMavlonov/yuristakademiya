@@ -6,6 +6,7 @@ import Shell from './components/layout/Shell';
 import Toast from './components/ui/Toast';
 import IncomingCall from './components/ui/IncomingCall';
 import Login from './pages/auth/Login';
+import AutoJoin from './pages/auth/AutoJoin';
 import { ensurePushSubscription } from './lib/push';
 
 // Teacher pages
@@ -116,6 +117,7 @@ export default function App() {
       <IncomingCall />
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/auto-join" element={<AutoJoin />} />
 
         <Route path="/teacher" element={
           <ProtectedRoute roles={['teacher', 'admin']}>

@@ -127,4 +127,28 @@ const me = async (userId) => {
   return rows[0];
 };
 
-module.exports = { register, login, me, verifyStatus, refresh };
+// Short-lived single-purpose token used in Telegram "Accept call" deeplinks.
+const signMagicToken = (userId) =>
+  jwt.sign({ id: userId, purpose: 'magic_join' }, ACCESS_SECRET(), { expiresIn: '15m' });
+
+const magicExchange = async (magicToken) => {
+  if (!magicToken) throw new AppError('Token required', 400);
+  let decoded;
+  try { decoded = jwt.verify(magicToken, ACCESS_SECRET()); }
+  catch { throw new AppError('Invalid or expired magic token', 401); }
+  if (decoded.purpose !== 'magic_join') throw new AppError('Wrong token purpose', 401);
+
+  const { rows: [u] } = await query(
+    'SELECT id, email, phone, first_name, last_name, role, avatar_url, is_active FROM users WHERE id=$1',
+    [decoded.id]
+  );
+  if (!u || !u.is_active) throw new AppError('User not found', 401);
+
+  return {
+    user: u,
+    accessToken: signAccessToken(u),
+    refreshToken: signRefreshToken(u),
+  };
+};
+
+module.exports = { register, login, me, verifyStatus, refresh, signMagicToken, magicExchange };

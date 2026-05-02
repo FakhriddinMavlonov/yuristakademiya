@@ -15,5 +15,8 @@ const verifyStatus = async (req, res, next) => {
 const refresh = async (req, res, next) => {
   try { res.json(await svc.refresh(req.body.refreshToken)); } catch (e) { next(e); }
 };
+const magicExchange = async (req, res, next) => {
+  try { res.json(await svc.magicExchange(req.body.token)); } catch (e) { next(e); }
+};
 
-module.exports = { register, login, me, verifyStatus, refresh };
+module.exports = { register, login, me, verifyStatus, refresh, magicExchange };

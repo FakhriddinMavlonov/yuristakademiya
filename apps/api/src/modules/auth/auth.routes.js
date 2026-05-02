@@ -8,6 +8,7 @@ const authLimit = rateLimiter(10, 15 * 60 * 1000);
 router.post('/register', authLimit, ctrl.register);
 router.post('/login', authLimit, ctrl.login);
 router.post('/refresh', ctrl.refresh);
+router.post('/magic-exchange', ctrl.magicExchange);
 router.get('/me', auth, ctrl.me);
 router.get('/verify-status/:phone', ctrl.verifyStatus);
 

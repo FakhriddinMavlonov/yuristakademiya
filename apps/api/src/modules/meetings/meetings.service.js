@@ -3,6 +3,8 @@ const { query } = require('../../config/db');
 const { AppError } = require('../../middleware/errorHandler');
 const { notify } = require('../../config/socket');
 const pushSvc = require('../push/push.service');
+const authSvc = require('../auth/auth.service');
+const { sendMeetingCall } = require('../../config/telegram');
 
 const DAILY_API = 'https://api.daily.co/v1';
 const DAILY_API_KEY = process.env.DAILY_API_KEY;
@@ -175,6 +177,25 @@ const ringStudents = async (meeting, teacherId) => {
     url: `/student/meetings/${meeting.id}`,
   }).then((r) => console.log(`[push] meeting ring → sent=${r.sent}, failed=${r.failed}, skipped=${r.skipped || false}`))
     .catch((e) => console.error('[push] meeting ring failed:', e.message));
+
+  // Telegram — most reliable channel (works with phone in pocket, all apps closed)
+  const { rows: chatRows } = await query(
+    'SELECT id, telegram_chat_id FROM users WHERE id = ANY($1::int[]) AND telegram_chat_id IS NOT NULL',
+    [userIds]
+  );
+  let tgSent = 0, tgFailed = 0;
+  await Promise.all(chatRows.map(async (row) => {
+    const magicToken = authSvc.signMagicToken(row.id);
+    const ok = await sendMeetingCall({
+      chatId: row.telegram_chat_id,
+      meetingId: meeting.id,
+      title: meeting.title,
+      teacherName,
+      magicToken,
+    });
+    ok ? tgSent++ : tgFailed++;
+  }));
+  console.log(`[telegram] meeting ring → sent=${tgSent}, failed=${tgFailed}, total_with_chat=${chatRows.length}/${userIds.length}`);
 };
 
 const updateStatus = async (meetingId, teacherId, status) => {

@@ -69,6 +69,7 @@ export const auth = {
   login: (d) => api.post('/auth/login', d),
   register: (d) => api.post('/auth/register', d),
   refresh: (refreshToken) => api.post('/auth/refresh', { refreshToken }),
+  magicExchange: (token) => api.post('/auth/magic-exchange', { token }),
   me: () => api.get('/auth/me'),
   verifyStatus: (phone) => api.get(`/auth/verify-status/${encodeURIComponent(phone)}`),
 };
