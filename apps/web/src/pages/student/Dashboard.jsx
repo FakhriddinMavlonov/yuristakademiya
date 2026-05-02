@@ -3,6 +3,109 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { courses as coursesApi, meetings as meetingsApi } from '../../api';
 import { PageLoader, SkeletonStatCards, SkeletonCard } from '../../components/ui/Loading';
+import { ensurePushSubscription, isPushSupported } from '../../lib/push';
+
+function PushPermissionBanner() {
+  const [permission, setPermission] = useState(() =>
+    typeof Notification !== 'undefined' ? Notification.permission : 'denied'
+  );
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+
+  if (!isPushSupported()) return null;
+  if (permission === 'granted' || done) return null;
+
+  const enable = async () => {
+    setLoading(true);
+    const ok = await ensurePushSubscription();
+    setLoading(false);
+    if (ok) {
+      setDone(true);
+      setPermission('granted');
+    } else {
+      setPermission(Notification.permission);
+    }
+  };
+
+  if (isIos && !isStandalone) {
+    return (
+      <div style={{
+        background: 'linear-gradient(135deg,#0C1A52,#1E2D8A)', color: '#fff',
+        borderRadius: 14, padding: '18px 20px', marginBottom: 20,
+        display: 'flex', gap: 14, alignItems: 'flex-start',
+      }}>
+        <div style={{ fontSize: 32, flexShrink: 0 }}>📱</div>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>
+            Qo'ng'iroqni qabul qilish uchun ilovani o'rnating
+          </div>
+          <div style={{ fontSize: 12, opacity: 0.85, lineHeight: 1.55 }}>
+            iPhone/iPad da dars boshlanishi haqida xabar olish uchun:<br />
+            <strong>Safari → «Ulashish» tugmasi → «Bosh ekranga qo'shish»</strong>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (permission === 'denied') {
+    return (
+      <div style={{
+        background: 'var(--red-bg)', border: '1px solid rgba(229,57,53,.2)',
+        borderRadius: 14, padding: '14px 18px', marginBottom: 20,
+        display: 'flex', gap: 12, alignItems: 'center',
+      }}>
+        <div style={{ fontSize: 24 }}>🔕</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--red)', marginBottom: 3 }}>
+            Bildirishnomalar bloklangan
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+            Brauzer sozlamalarida yuristakademiya uchun bildirishnomalarni yoqing, keyin sahifani yangilang.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg,#0C1A52 0%,#1B3A8A 100%)',
+      borderRadius: 14, padding: '18px 20px', marginBottom: 20,
+      display: 'flex', gap: 16, alignItems: 'center',
+      boxShadow: '0 4px 20px rgba(12,26,82,0.25)',
+    }}>
+      <div style={{
+        width: 52, height: 52, borderRadius: 14, background: 'rgba(255,255,255,0.12)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 26, flexShrink: 0, animation: 'pulse 2s ease-in-out infinite',
+      }}>📞</div>
+      <div style={{ flex: 1, color: '#fff' }}>
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>
+          Dars qo'ng'irog'ini ulash
+        </div>
+        <div style={{ fontSize: 12, opacity: 0.85, lineHeight: 1.5 }}>
+          Ustoz darsni boshlaganida telefon/kompyuteringizda bildirishnoma kelsin — dastur yopiq bo'lsa ham.
+        </div>
+      </div>
+      <button
+        onClick={enable}
+        disabled={loading}
+        style={{
+          background: '#FFD700', color: '#0C1A52', border: 'none',
+          borderRadius: 10, padding: '10px 18px', cursor: 'pointer',
+          fontSize: 13, fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap',
+          opacity: loading ? 0.7 : 1,
+        }}
+      >
+        {loading ? '...' : 'Yoqish'}
+      </button>
+    </div>
+  );
+}
 
 export default function StudentDashboard() {
   const [courseList, setCourseList] = useState([]);
@@ -52,6 +155,7 @@ export default function StudentDashboard() {
 
   return (
     <div className="page">
+      <PushPermissionBanner />
       <div className="stats-row stagger" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
         <div className="stat-card">
           <div className="stat-num" style={{ color: 'var(--navy-text)' }}>{enrolled.length}</div>

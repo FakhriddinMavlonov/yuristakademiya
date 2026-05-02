@@ -1,44 +1,54 @@
 // Service worker — handles web push notifications.
-// Plays a ringtone via the page when possible; falls back to OS notification sound.
 
-const RING_TIMEOUT_MS = 30000;
-
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
-});
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch { data = { title: 'Bildirishnoma', body: event.data?.text() || '' }; }
 
+  const isMeeting = data.type === 'meeting:started';
   const title = data.title || 'Yurist Akademiya';
   const options = {
     body: data.body || '',
     tag: data.tag || 'general',
     renotify: true,
-    requireInteraction: data.type === 'meeting:started',
+    requireInteraction: isMeeting,
     icon: '/logo.jpg',
     badge: '/logo.jpg',
     data: { url: data.url || '/', meetingId: data.meetingId, type: data.type },
-    actions: data.type === 'meeting:started' ? [
+    actions: isMeeting ? [
       { action: 'accept', title: '✓ Qabul qilish' },
       { action: 'decline', title: '✕ Rad etish' },
     ] : [],
-    vibrate: data.type === 'meeting:started' ? [400, 200, 400, 200, 400] : [200],
+    // Repeating vibration pattern: on-off-on-off-on-pause × repeat feels like a phone ring
+    vibrate: isMeeting
+      ? [500, 300, 500, 300, 500, 1000, 500, 300, 500, 300, 500, 1000, 500, 300, 500]
+      : [200],
+    silent: false,
   };
 
   event.waitUntil((async () => {
-    // 1. Show OS notification (works even when site is closed)
     await self.registration.showNotification(title, options);
 
-    // 2. Tell open clients to start ringing (if any are open)
+    // Tell open clients to show in-app ring UI
     const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of clients) {
       client.postMessage({ type: 'push', payload: data });
+    }
+
+    // Re-notify every 8 s while the notification is unacknowledged (phone-ring effect)
+    if (isMeeting) {
+      let attempts = 0;
+      const rering = async () => {
+        attempts++;
+        if (attempts >= 4) return; // give up after ~32s
+        const existing = await self.registration.getNotifications({ tag: data.tag });
+        if (!existing.length) return; // already dismissed
+        await self.registration.showNotification(title, { ...options, renotify: true });
+        setTimeout(rering, 8000);
+      };
+      setTimeout(rering, 8000);
     }
   })());
 });
