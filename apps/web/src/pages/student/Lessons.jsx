@@ -100,7 +100,7 @@ export default function StudentLessons() {
                   </div>
                   {lesson.locked && (
                     <div style={{ fontSize: 10, color: 'var(--amber)', marginTop: 1 }}>
-                      Avvalgi dars testini o'ting (90%+)
+                      Avvalgi dars testini o'ting (80%+) va uy ishini topshiring
                     </div>
                   )}
                   {!lesson.locked && lesson.duration_seconds > 0 && (
@@ -184,27 +184,27 @@ export default function StudentLessons() {
 
           {/* Test button */}
           {active.test_id && (
-            <div className="card" style={{ background: active.best_score >= (active.pass_score_pct || 90) ? 'var(--green-bg)' : 'var(--bg)' }}>
+            <div className="card" style={{ background: active.best_score >= (active.pass_score_pct || 80) ? 'var(--green-bg)' : 'var(--bg)' }}>
               <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 44, height: 44, background: active.best_score >= (active.pass_score_pct || 90) ? 'var(--green)' : 'var(--amber)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
-                  {active.best_score >= (active.pass_score_pct || 90) ? '✅' : '🎯'}
+                <div style={{ width: 44, height: 44, background: active.best_score >= (active.pass_score_pct || 80) ? 'var(--green)' : 'var(--amber)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                  {active.best_score >= (active.pass_score_pct || 80) ? '✅' : '🎯'}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 700 }}>{active.test_title || 'Dars testi'}</div>
                   <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                    O'tish balli: {active.pass_score_pct || 90}% · {active.time_limit_minutes ? `${active.time_limit_minutes} daq` : 'Vaqt cheklanmagan'}
+                    O'tish balli: {active.pass_score_pct || 80}% · {active.time_limit_minutes ? `${active.time_limit_minutes} daq` : 'Vaqt cheklanmagan'}
                     {active.best_score !== null && active.best_score !== undefined && (
-                      <span style={{ marginLeft: 6, color: active.best_score >= (active.pass_score_pct || 90) ? 'var(--green)' : 'var(--red)', fontWeight: 700 }}>
+                      <span style={{ marginLeft: 6, color: active.best_score >= (active.pass_score_pct || 80) ? 'var(--green)' : 'var(--red)', fontWeight: 700 }}>
                         · Eng yaxshi ball: {active.best_score}%
                       </span>
                     )}
                   </div>
                 </div>
                 <button
-                  className={`btn ${active.best_score >= (active.pass_score_pct || 90) ? 'btn-ghost' : 'btn-gold'}`}
+                  className={`btn ${active.best_score >= (active.pass_score_pct || 80) ? 'btn-ghost' : 'btn-gold'}`}
                   onClick={() => navigate(`/student/test/${active.test_id}`)}
                 >
-                  {active.best_score >= (active.pass_score_pct || 90) ? 'Qayta topshirish' : 'Testni boshlash →'}
+                  {active.best_score >= (active.pass_score_pct || 80) ? 'Qayta topshirish' : 'Testni boshlash →'}
                 </button>
               </div>
             </div>

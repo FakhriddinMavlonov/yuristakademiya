@@ -88,15 +88,17 @@ const getDetail = async (groupId, userId, role) => {
   return { ...group, students, schedule };
 };
 
-const create = async (data) => {
+const create = async (data, actorId, actorRole) => {
+  // Teachers can only create groups for themselves
+  const teacherId = actorRole === 'teacher' ? actorId : (data.teacherId || null);
   const { rows: [group] } = await query(`
     INSERT INTO groups (name, course_id, teacher_id, start_date, end_date, shift, capacity, status)
     VALUES ($1,$2,$3,$4,$5,$6,$7,'active') RETURNING *
   `, [
     data.name,
     data.courseId || null,
-    data.teacherId || null,
-    data.startDate,
+    teacherId,
+    data.startDate || new Date().toISOString().split('T')[0],
     data.endDate || null,
     data.shift || 'morning',
     data.capacity || 25,
@@ -104,8 +106,13 @@ const create = async (data) => {
   return group;
 };
 
-const update = async (groupId, data) => {
-  const { rows: [group] } = await query(`
+const update = async (groupId, data, actorId, actorRole) => {
+  // Teachers can only update their own groups and cannot reassign teacher_id
+  if (actorRole === 'teacher') {
+    const { rows: [group] } = await query('SELECT id FROM groups WHERE id=$1 AND teacher_id=$2', [groupId, actorId]);
+    if (!group) throw new AppError('Group not found or forbidden', 404);
+  }
+  const { rows: [updated] } = await query(`
     UPDATE groups SET
       name        = COALESCE($1, name),
       course_id   = COALESCE($2, course_id),
@@ -115,28 +122,51 @@ const update = async (groupId, data) => {
       shift       = COALESCE($6, shift),
       capacity    = COALESCE($7, capacity),
       status      = COALESCE($8, status)
-    WHERE id = $9 RETURNING *
-  `, [data.name, data.courseId, data.teacherId, data.startDate,
-      data.endDate, data.shift, data.capacity, data.status, groupId]);
-  if (!group) throw new AppError('Group not found', 404);
-  return group;
+    WHERE id=$9 RETURNING *
+  `, [
+    data.name ?? null,
+    data.courseId ?? null,
+    actorRole === 'teacher' ? null : (data.teacherId ?? null),
+    data.startDate ?? null, data.endDate ?? null, data.shift ?? null,
+    data.capacity ?? null, data.status ?? null,
+    groupId,
+  ]);
+  if (!updated) throw new AppError('Group not found', 404);
+  return updated;
 };
 
-const remove = async (groupId) => {
-  await query('DELETE FROM groups WHERE id = $1', [groupId]);
+const remove = async (groupId, actorId, actorRole) => {
+  const ownerCheck = actorRole === 'teacher' ? 'AND teacher_id=$2' : '';
+  const params = actorRole === 'teacher' ? [groupId, actorId] : [groupId];
+  await query(`DELETE FROM groups WHERE id=$1 ${ownerCheck}`, params);
   return { deleted: true };
 };
 
-const addStudent = async (groupId, userId) => {
+const addStudent = async (groupId, studentId, actorId, actorRole) => {
+  if (actorRole === 'teacher') {
+    // Teacher can only add students they created
+    const { rows: [student] } = await query(
+      'SELECT id FROM users WHERE id=$1 AND created_by=$2',
+      [studentId, actorId]
+    );
+    if (!student) throw new AppError('Bu o\'quvchi sizga tegishli emas', 403);
+    // Verify this group belongs to the teacher
+    const { rows: [group] } = await query('SELECT id FROM groups WHERE id=$1 AND teacher_id=$2', [groupId, actorId]);
+    if (!group) throw new AppError('Bu guruh sizga tegishli emas', 403);
+  }
   await query(
     'INSERT INTO group_students (group_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
-    [groupId, userId]
+    [groupId, studentId]
   );
   return { added: true };
 };
 
-const removeStudent = async (groupId, userId) => {
-  await query('DELETE FROM group_students WHERE group_id=$1 AND user_id=$2', [groupId, userId]);
+const removeStudent = async (groupId, studentId, actorId, actorRole) => {
+  if (actorRole === 'teacher') {
+    const { rows: [group] } = await query('SELECT id FROM groups WHERE id=$1 AND teacher_id=$2', [groupId, actorId]);
+    if (!group) throw new AppError('Bu guruh sizga tegishli emas', 403);
+  }
+  await query('DELETE FROM group_students WHERE group_id=$1 AND user_id=$2', [groupId, studentId]);
   return { removed: true };
 };
 

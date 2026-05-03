@@ -5,6 +5,7 @@ const cors = require('cors');
 const { initSocket } = require('./config/socket');
 const { initTelegramBot } = require('./config/telegram');
 const { startReminderScheduler } = require('./modules/meetings/meetings.scheduler');
+const { startDailyScheduler } = require('./modules/meetings/daily.scheduler');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const path = require('path');
@@ -18,6 +19,7 @@ if (process.env.TELEGRAM_BOT_ENABLED === 'true') {
   initTelegramBot();
 }
 startReminderScheduler();
+startDailyScheduler();
 
 // MIDDLEWARE
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));

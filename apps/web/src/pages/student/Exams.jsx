@@ -101,6 +101,32 @@ function UpcomingCard({ exam }) {
           {exam.topic}
         </div>
       )}
+      {exam.answer_text && <SharedAnswers text={exam.answer_text} />}
+    </div>
+  );
+}
+
+function SharedAnswers({ text }) {
+  // Each line becomes a list item (e.g. "1. B" / "2. C")
+  const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  return (
+    <div style={{
+      marginTop: 12, padding: 12,
+      background: 'var(--green-bg)', borderRadius: 10, border: '1px solid rgba(16,185,129,.3)',
+    }}>
+      <div style={{ fontWeight: 700, fontSize: 12, color: 'var(--green)', marginBottom: 8 }}>
+        ✓ Javoblar (ustoz tomonidan e'lon qilingan)
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: 6 }}>
+        {lines.map((line, i) => (
+          <div key={i} style={{
+            padding: '6px 10px', background: 'var(--card)', borderRadius: 6,
+            fontSize: 13, fontFamily: 'monospace', textAlign: 'center', fontWeight: 600,
+          }}>
+            {line}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -139,6 +165,7 @@ function ResultCard({ exam }) {
           {exam.my_feedback}
         </div>
       )}
+      {exam.answer_text && <SharedAnswers text={exam.answer_text} />}
     </div>
   );
 }

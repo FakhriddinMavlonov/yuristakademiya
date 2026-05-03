@@ -31,6 +31,7 @@ export default function TeacherExams() {
   const [resultExam, setResultExam] = useState(null);
   const [resultStudents, setResultStudents] = useState([]);
   const [resultRows, setResultRows] = useState({});
+  const [answerText, setAnswerText] = useState('');
 
   useEffect(() => { load(); }, []);
 
@@ -111,6 +112,7 @@ export default function TeacherExams() {
       const { students } = await examsApi.students(exam.id);
       setResultExam(exam);
       setResultStudents(students);
+      setAnswerText(exam.answer_text || '');
       const rows = {};
       students.forEach((s) => {
         rows[s.id] = { score: s.score ?? '', feedback: s.feedback ?? '' };
@@ -194,6 +196,31 @@ export default function TeacherExams() {
               </table>
             </div>
           )}
+          <div style={{ marginTop: 20, padding: 14, background: 'var(--bg)', borderRadius: 10 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>📋 Test javoblari (hammaga ko'rinadi)</div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>
+              Har bir javobni alohida qatorga yozing. Masalan: <code>1. B</code>, <code>2. C</code>...
+            </div>
+            <textarea
+              className="finput"
+              rows={6}
+              placeholder={"1. B\n2. C\n3. A\n4. D\n..."}
+              style={{ width: '100%', fontFamily: 'monospace', fontSize: 13 }}
+              value={answerText}
+              onChange={(e) => setAnswerText(e.target.value)}
+            />
+            <button
+              className="btn-ghost"
+              style={{ marginTop: 8 }}
+              onClick={async () => {
+                try {
+                  await examsApi.update(resultExam.id, { answerText });
+                  showToast('Javoblar saqlandi');
+                  load();
+                } catch { showToast('Xatolik'); }
+              }}
+            >💾 Javoblarni saqlash</button>
+          </div>
           <div style={{ marginTop: 16, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button className="btn-ghost" onClick={() => setResultExam(null)}>Bekor</button>
             <button className="btn-primary" onClick={saveResults}>✓ Natijalarni e'lon qilish</button>

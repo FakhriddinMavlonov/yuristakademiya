@@ -14,6 +14,8 @@ export default function TeacherLessons() {
   const [selected, setSelected] = useState(null);
   const [addModal, setAddModal] = useState(false);
   const [form, setForm] = useState({ title: '', orderNum: '', description: '' });
+  const [linkForm, setLinkForm] = useState({ title: '', url: '' });
+  const [linkSaving, setLinkSaving] = useState(false);
   const [hwModal, setHwModal] = useState(false);
   const [hwForm, setHwForm] = useState({ title: '', description: '', deadlineDays: 3, submissionType: 'text' });
   const [upload, setUpload] = useState({ state: 'idle', progress: 0, fileName: '' });
@@ -75,6 +77,34 @@ export default function TeacherLessons() {
       setList((p) => p.map((l) => l.id === selected.id ? updated : l));
       showToast(t('teacher.lessons.hwDeleted'));
     } catch { showToast(t('teacher.lessons.hwDeleteError')); }
+  };
+
+  const addLink = async () => {
+    if (!linkForm.title.trim() || !linkForm.url.trim()) return showToast('Sarlavha va URL kiriting');
+    if (!selected) return;
+    setLinkSaving(true);
+    try {
+      const existing = selected.supplementary_links || [];
+      const updated = [...existing, { title: linkForm.title.trim(), url: linkForm.url.trim() }];
+      await lessonsApi.update(selected.id, { supplementaryLinks: updated });
+      const updatedLesson = { ...selected, supplementary_links: updated };
+      setSelected(updatedLesson);
+      setList((p) => p.map((l) => l.id === selected.id ? updatedLesson : l));
+      setLinkForm({ title: '', url: '' });
+      showToast('Havola qo\'shildi');
+    } catch { showToast(t('common.error')); }
+    finally { setLinkSaving(false); }
+  };
+
+  const removeLink = async (idx) => {
+    if (!selected) return;
+    const updated = (selected.supplementary_links || []).filter((_, i) => i !== idx);
+    try {
+      await lessonsApi.update(selected.id, { supplementaryLinks: updated });
+      const updatedLesson = { ...selected, supplementary_links: updated };
+      setSelected(updatedLesson);
+      setList((p) => p.map((l) => l.id === selected.id ? updatedLesson : l));
+    } catch { showToast(t('common.error')); }
   };
 
   const onFileSelected = async (e) => {
@@ -308,6 +338,42 @@ export default function TeacherLessons() {
                   </div>
                 </div>
               )}
+
+              {/* Supplementary links */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--hint)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 }}>
+                  Qo'shimcha manbalar
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {(selected.supplementary_links || []).map((link, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--bg)', borderRadius: 8, border: '.5px solid var(--line)' }}>
+                      <span style={{ fontSize: 14 }}>🔗</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link.title}</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link.url}</div>
+                      </div>
+                      <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px', color: 'var(--red)', flexShrink: 0 }} onClick={() => removeLink(idx)}>✕</button>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input
+                      className="finput"
+                      style={{ flex: 1, fontSize: 11 }}
+                      placeholder="Sarlavha"
+                      value={linkForm.title}
+                      onChange={(e) => setLinkForm((f) => ({ ...f, title: e.target.value }))}
+                    />
+                    <input
+                      className="finput"
+                      style={{ flex: 2, fontSize: 11 }}
+                      placeholder="https://..."
+                      value={linkForm.url}
+                      onChange={(e) => setLinkForm((f) => ({ ...f, url: e.target.value }))}
+                    />
+                    <button className="btn btn-navy btn-sm" onClick={addLink} disabled={linkSaving} style={{ flexShrink: 0 }}>+</button>
+                  </div>
+                </div>
+              </div>
 
               {/* Test & Homework */}
               <div>

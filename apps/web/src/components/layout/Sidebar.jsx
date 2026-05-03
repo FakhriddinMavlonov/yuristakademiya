@@ -139,11 +139,19 @@ const adminNavKeys = [
 ];
 
 export default function Sidebar({ role, open, onClose }) {
-  const { user, logout, unreadMessages } = useStore();
+  const { user, logout, unreadMessages, mode, setMode } = useStore();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const navKeys = role === 'admin' ? adminNavKeys : role === 'teacher' ? teacherNavKeys : studentNavKeys;
+  const baseNavKeys = role === 'admin' ? adminNavKeys : role === 'teacher' ? teacherNavKeys : studentNavKeys;
+  const navKeys = role === 'teacher'
+    ? baseNavKeys.filter((item) => {
+        if (mode === 'online' && item.to === '/teacher/groups') return false;
+        if (mode === 'offline' && item.to === '/teacher/courses') return false;
+        if (mode === 'offline' && item.to === '/teacher/meetings') return false;
+        return true;
+      })
+    : baseNavKeys;
 
   const initials = user
     ? (user.first_name?.[0] || '') + (user.last_name?.[0] || '')
@@ -166,6 +174,24 @@ export default function Sidebar({ role, open, onClose }) {
           <div className="logo-name">Yurist Akademiya</div>
           <div className="logo-sub">{t('sidebar.platform')}</div>
         </div>
+      </div>
+
+      <div style={{
+        display: 'flex', gap: 4, padding: 4, margin: '0 16px 12px',
+        background: 'rgba(255,255,255,0.08)', borderRadius: 10,
+      }}>
+        {[['online', '🌐 Online'], ['offline', '🏫 Offline']].map(([m, label]) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            style={{
+              flex: 1, padding: '7px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
+              fontSize: 12, fontWeight: 600, transition: 'all .15s',
+              background: mode === m ? '#FFD700' : 'transparent',
+              color: mode === m ? '#0C1A52' : 'rgba(255,255,255,0.7)',
+            }}
+          >{label}</button>
+        ))}
       </div>
 
       <nav className="sb-nav">

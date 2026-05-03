@@ -1,8 +1,57 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { groups as groupsApi, attendance as attendanceApi, grades as gradesApi } from '../../api';
+import { groups as groupsApi, attendance as attendanceApi, grades as gradesApi, auth as authApi } from '../../api';
 import useStore from '../../store/useStore';
 import { SkeletonStatCards, SkeletonCard } from '../../components/ui/Loading';
+
+function LessonDaysPicker() {
+  const { user, setUser, showToast, mode } = useStore();
+  const [saving, setSaving] = useState(false);
+  if (mode !== 'online') return null;
+
+  const choose = async (val) => {
+    setSaving(true);
+    try {
+      await authApi.updateMe({ lessonDays: val });
+      setUser({ ...user, lesson_days: val });
+      showToast('Saqlandi');
+    } catch { showToast('Xatolik'); }
+    setSaving(false);
+  };
+
+  const current = user?.lesson_days;
+  return (
+    <div className="card" style={{ marginBottom: 14 }}>
+      <div className="card-hd"><h3>📅 Dars kunlari</h3></div>
+      <div className="card-body">
+        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>
+          Online darslar haftada 3 kun. O'zingizga qulay variantni tanlang.
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {[
+            ['mwf', 'Du / Chor / Jum'],
+            ['tts', 'Se / Pa / Sh'],
+          ].map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => choose(k)}
+              disabled={saving}
+              style={{
+                padding: '14px 12px', borderRadius: 10, cursor: 'pointer',
+                background: current === k ? 'var(--navy)' : 'var(--bg)',
+                color: current === k ? '#fff' : 'var(--ink)',
+                border: `1px solid ${current === k ? 'var(--navy)' : 'var(--line-2)'}`,
+                fontSize: 13, fontWeight: 600,
+              }}
+            >
+              {current === k && '✓ '}{label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const STATUS_COLORS = { present: 'var(--green)', late: 'var(--amber)', absent: 'var(--red)', excused: 'var(--muted)' };
 const STATUS_BG = { present: 'var(--green-bg)', late: 'var(--amber-bg)', absent: 'var(--red-bg)', excused: 'var(--bg2)' };
@@ -53,9 +102,17 @@ export default function StudentSchedule() {
 
   if (loading) {
     return (
-      <div className="page" style={{ maxWidth: 800, margin: '0 auto' }}>
-        <SkeletonStatCards count={4} />
-        <div className="r-2col-side" style={{ marginTop: 14 }}>
+      <div className="page">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 14 }} className="stagger">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="skeleton-card" style={{ animationDelay: `${i * 40}ms` }}>
+              <span className="skeleton skeleton-num" style={{ width: '50%' }} />
+              <span className="skeleton skeleton-text" style={{ width: '70%' }} />
+              <span className="skeleton skeleton-text" style={{ width: '45%', opacity: 0.5 }} />
+            </div>
+          ))}
+        </div>
+        <div className="r-2col-side">
           <SkeletonCard rows={7} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <SkeletonCard rows={2} />
@@ -68,7 +125,8 @@ export default function StudentSchedule() {
 
   if (groups.length === 0) {
     return (
-      <div className="page" style={{ maxWidth: 560, margin: '0 auto' }}>
+      <div className="page">
+        <LessonDaysPicker />
         <div className="card" style={{ textAlign: 'center', padding: 60, color: 'var(--hint)' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>📅</div>
           <div style={{ fontSize: 14 }}>{t('schedule.noGroup')}</div>
@@ -85,7 +143,8 @@ export default function StudentSchedule() {
     : [];
 
   return (
-    <div className="page" style={{ maxWidth: 800, margin: '0 auto' }}>
+    <div className="page">
+      <LessonDaysPicker />
       {/* Group selector if multiple groups */}
       {groups.length > 1 && (
         <div className="tabs" style={{ marginBottom: 14 }}>

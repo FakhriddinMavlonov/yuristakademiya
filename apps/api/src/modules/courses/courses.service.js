@@ -1,7 +1,8 @@
 const { query, transaction } = require('../../config/db');
 const { AppError } = require('../../middleware/errorHandler');
 
-const list = async (userId, role) => {
+const list = async (userId, role, mode = null) => {
+  const modeFilter = mode ? `AND c.mode = '${mode === 'offline' ? 'offline' : 'online'}'` : '';
   if (role === 'teacher') {
     const { rows } = await query(`
       SELECT c.*, COUNT(DISTINCT e.user_id)::int AS enrolled_count,
@@ -11,12 +12,11 @@ const list = async (userId, role) => {
       LEFT JOIN lessons l ON l.course_id = c.id
       LEFT JOIN tests t ON t.lesson_id = l.id
       LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ta.submitted_at IS NOT NULL
-      WHERE c.teacher_id = $1
+      WHERE c.teacher_id = $1 ${modeFilter}
       GROUP BY c.id ORDER BY c.created_at DESC
     `, [userId]);
     return rows;
   }
-  // student — enrolled courses + available
   const { rows } = await query(`
     SELECT c.*, u.first_name||' '||u.last_name AS teacher_name,
       e.enrolled_at,
@@ -27,7 +27,7 @@ const list = async (userId, role) => {
     LEFT JOIN enrollments e ON e.course_id = c.id AND e.user_id = $1
     LEFT JOIN lessons l ON l.course_id = c.id AND l.is_published
     LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id AND lp.user_id = $1
-    WHERE c.status = 'published'
+    WHERE c.status = 'published' ${modeFilter}
     GROUP BY c.id, u.first_name, u.last_name, e.enrolled_at
     ORDER BY e.enrolled_at DESC NULLS LAST, c.created_at DESC
   `, [userId]);
@@ -35,10 +35,11 @@ const list = async (userId, role) => {
 };
 
 const create = async (teacherId, data) => {
+  const mode = data.mode === 'offline' ? 'offline' : 'online';
   const { rows } = await query(`
-    INSERT INTO courses (title, description, category, level, banner_gradient, teacher_id, status)
-    VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *
-  `, [data.title, data.description, data.category, data.level, data.bannerGradient, teacherId, data.status || 'draft']);
+    INSERT INTO courses (title, description, category, level, banner_gradient, teacher_id, status, mode)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *
+  `, [data.title, data.description, data.category, data.level, data.bannerGradient, teacherId, data.status || 'draft', mode]);
   return rows[0];
 };
 
@@ -49,14 +50,16 @@ const get = async (id) => {
 };
 
 const update = async (id, teacherId, data) => {
+  const mode = data.mode && ['online', 'offline'].includes(data.mode) ? data.mode : null;
   const { rows } = await query(`
     UPDATE courses SET title=COALESCE($1,title), description=COALESCE($2,description),
       category=COALESCE($3,category), level=COALESCE($4,level),
       banner_gradient=COALESCE($5,banner_gradient), status=COALESCE($6,status),
       intro_video_url=COALESCE($7,intro_video_url),
+      mode=COALESCE($8,mode),
       updated_at=NOW()
-    WHERE id=$8 AND teacher_id=$9 RETURNING *
-  `, [data.title, data.description, data.category, data.level, data.bannerGradient, data.status, data.introVideoUrl, id, teacherId]);
+    WHERE id=$9 AND teacher_id=$10 RETURNING *
+  `, [data.title, data.description, data.category, data.level, data.bannerGradient, data.status, data.introVideoUrl, mode, id, teacherId]);
   if (!rows[0]) throw new AppError('Course not found', 404);
   return rows[0];
 };
@@ -196,4 +199,45 @@ const remove = async (id, teacherId) => {
   });
 };
 
-module.exports = { list, get, create, update, uploadIntroVideo, remove, enroll, studentStats, getTeacherStudents, getStudentDetail };
+// List offline students that this teacher personally registered
+const listOfflineStudents = async (teacherId) => {
+  const { rows } = await query(`
+    SELECT id, first_name, last_name, phone, second_phone, is_active, created_at
+    FROM users
+    WHERE created_by=$1 AND role='student'
+    ORDER BY first_name, last_name
+  `, [teacherId]);
+  return rows;
+};
+
+// Teacher registers a new offline student (pre-verified, belongs to this teacher)
+const registerOfflineStudent = async (teacherId, data) => {
+  const { firstName, lastName, phone, password, secondPhone } = data;
+  if (!firstName || !lastName || !phone || !password) {
+    throw new AppError('Barcha maydonlarni to\'ldiring', 400);
+  }
+  if (password.length < 6) throw new AppError('Parol kamida 6 ta belgidan iborat bo\'lishi kerak', 400);
+
+  const bcrypt = require('bcryptjs');
+  const normalizeP = (p) => {
+    const d = p.replace(/\D/g, '');
+    if (d.length === 9) return '+998' + d;
+    if (d.length === 12 && d.startsWith('998')) return '+' + d;
+    return '+' + d;
+  };
+  const normalizedPhone = normalizeP(phone);
+  const secondNorm = secondPhone ? normalizeP(secondPhone) : null;
+
+  const exists = await query('SELECT id FROM users WHERE phone=$1', [normalizedPhone]);
+  if (exists.rows[0]) throw new AppError('Bu telefon raqam allaqachon ro\'yxatdan o\'tgan', 409);
+
+  const hash = await bcrypt.hash(password, 10);
+  const { rows: [user] } = await query(`
+    INSERT INTO users (first_name, last_name, phone, second_phone, password_hash, role, is_verified, is_active, created_by)
+    VALUES ($1,$2,$3,$4,$5,'student',true,true,$6)
+    RETURNING id, first_name, last_name, phone, second_phone, is_active, created_at
+  `, [firstName, lastName, normalizedPhone, secondNorm, hash, teacherId]);
+  return user;
+};
+
+module.exports = { list, get, create, update, uploadIntroVideo, remove, enroll, studentStats, getTeacherStudents, getStudentDetail, listOfflineStudents, registerOfflineStudent };

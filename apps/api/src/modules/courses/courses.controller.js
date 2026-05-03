@@ -1,7 +1,7 @@
 const svc = require('./courses.service');
 
 const list = async (req, res, next) => {
-  try { res.json(await svc.list(req.user.id, req.user.role)); } catch (e) { next(e); }
+  try { res.json(await svc.list(req.user.id, req.user.role, req.query.mode)); } catch (e) { next(e); }
 };
 const get = async (req, res, next) => {
   try { res.json(await svc.get(req.params.id)); } catch (e) { next(e); }
@@ -34,8 +34,16 @@ const teacherStudents = async (req, res, next) => {
   try { res.json(await svc.getTeacherStudents(req.user.id)); } catch (e) { next(e); }
 };
 
+const listOfflineStudents = async (req, res, next) => {
+  try { res.json(await svc.listOfflineStudents(req.user.id)); } catch (e) { next(e); }
+};
+
+const registerOfflineStudent = async (req, res, next) => {
+  try { res.status(201).json(await svc.registerOfflineStudent(req.user.id, req.body)); } catch (e) { next(e); }
+};
+
 const studentDetail = async (req, res, next) => {
   try { res.json(await svc.getStudentDetail(req.params.studentId, req.user.id)); } catch (e) { next(e); }
 };
 
-module.exports = { list, get, create, update, uploadIntroVideo, remove, enroll, studentStats, teacherStudents, studentDetail };
+module.exports = { list, get, create, update, uploadIntroVideo, remove, enroll, studentStats, teacherStudents, studentDetail, listOfflineStudents, registerOfflineStudent };

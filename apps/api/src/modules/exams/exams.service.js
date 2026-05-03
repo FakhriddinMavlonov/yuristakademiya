@@ -100,11 +100,12 @@ const update = async (examId, teacherId, role, data) => {
         duration_minutes = COALESCE($5, duration_minutes),
         max_score = COALESCE($6, max_score),
         status = COALESCE($7, status),
+        answer_text = COALESCE($8, answer_text),
         updated_at = NOW()
-      WHERE id = $8 RETURNING *
+      WHERE id = $9 RETURNING *
     `, [
       data.title, data.topic, data.scheduledAt, data.location,
-      data.durationMinutes, data.maxScore, data.status, examId,
+      data.durationMinutes, data.maxScore, data.status, data.answerText, examId,
     ]);
     if (Array.isArray(data.groupIds)) {
       await client.query('DELETE FROM mock_exam_groups WHERE exam_id=$1', [examId]);

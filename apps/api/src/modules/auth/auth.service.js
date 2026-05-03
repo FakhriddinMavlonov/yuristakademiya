@@ -119,11 +119,27 @@ const refresh = async (refreshToken) => {
 };
 
 const me = async (userId) => {
-  const { rows } = await query(
-    'SELECT id, email, first_name, last_name, role, phone, avatar_url, created_at FROM users WHERE id=$1',
-    [userId]
-  );
+  // Resilient against missing new columns (e.g. before migration runs)
+  const { rows } = await query(`
+    SELECT id, email, first_name, last_name, role, phone, avatar_url, created_at,
+      to_jsonb(u) - 'password_hash' - 'otp_code' AS _full
+    FROM users u WHERE id=$1
+  `, [userId]);
   if (!rows[0]) throw new AppError('User not found', 404);
+  const { _full, ...basic } = rows[0];
+  // Merge any extra columns (call_phone, telegram_phone, parent_*, lesson_days, …)
+  return { ...basic, ..._full };
+};
+
+const updateProfile = async (userId, data) => {
+  const lessonDays = data.lessonDays && ['mwf', 'tts'].includes(data.lessonDays) ? data.lessonDays : null;
+  const { rows } = await query(`
+    UPDATE users SET
+      lesson_days = COALESCE($1, lesson_days),
+      updated_at = NOW()
+    WHERE id = $2
+    RETURNING id, lesson_days
+  `, [lessonDays, userId]);
   return rows[0];
 };
 
@@ -151,4 +167,4 @@ const magicExchange = async (magicToken) => {
   };
 };
 
-module.exports = { register, login, me, verifyStatus, refresh, signMagicToken, magicExchange };
+module.exports = { register, login, me, verifyStatus, refresh, signMagicToken, magicExchange, updateProfile };

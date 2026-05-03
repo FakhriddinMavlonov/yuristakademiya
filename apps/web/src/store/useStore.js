@@ -58,6 +58,12 @@ const useStore = create((set, get) => ({
   unreadMessages: 0,
   theme: localStorage.getItem("ya_theme") || "light",
   language: localStorage.getItem("ya_lang") || "uz",
+  mode: localStorage.getItem("ya_mode") || "online", // 'online' | 'offline'
+
+  setMode: (mode) => {
+    localStorage.setItem("ya_mode", mode);
+    set({ mode });
+  },
 
   setUser: (user) => set({ user }),
 

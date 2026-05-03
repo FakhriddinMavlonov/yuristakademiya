@@ -34,6 +34,14 @@ const migrate = async () => {
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id VARCHAR(30)`);
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS second_phone VARCHAR(20)`);
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS third_phone VARCHAR(20)`);
+    // New phone columns: clearer separation between call-only and Telegram-verified
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS call_phone VARCHAR(20)`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_phone VARCHAR(20)`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_call_phone VARCHAR(20)`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_telegram_phone VARCHAR(20)`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_telegram_chat_id VARCHAR(30)`);
+    // Online lesson schedule preference: 'mwf' (Mon/Wed/Fri) or 'tts' (Tue/Thu/Sat)
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS lesson_days VARCHAR(5)`);
     await client.query(`ALTER TABLE users ALTER COLUMN email DROP NOT NULL`);
 
     // 2. courses
@@ -55,6 +63,8 @@ const migrate = async () => {
 
     // Add intro_video_url column if it doesn't exist
     await client.query(`ALTER TABLE courses ADD COLUMN IF NOT EXISTS intro_video_url TEXT`);
+    // Course delivery mode: 'online' (self-paced video lessons) or 'offline' (in-person classroom)
+    await client.query(`ALTER TABLE courses ADD COLUMN IF NOT EXISTS mode VARCHAR(10) DEFAULT 'online' CHECK (mode IN ('online','offline'))`);
 
     // 3. enrollments
     await client.query(`
@@ -121,7 +131,7 @@ const migrate = async () => {
         lesson_id INTEGER REFERENCES lessons(id) ON DELETE CASCADE,
         title VARCHAR(255) NOT NULL,
         time_limit_minutes INTEGER DEFAULT 30,
-        pass_score_pct INTEGER DEFAULT 90,
+        pass_score_pct INTEGER DEFAULT 80,
         max_attempts INTEGER DEFAULT 3,
         shuffle_questions BOOLEAN DEFAULT true,
         show_answers_after BOOLEAN DEFAULT true,
@@ -482,6 +492,25 @@ const migrate = async () => {
 
     // Schema additions for existing DBs
     await client.query(`ALTER TABLE tests ADD COLUMN IF NOT EXISTS passages JSONB DEFAULT '[]'`);
+    // Lower default test pass threshold from 90 → 80 (also update existing 90s)
+    await client.query(`ALTER TABLE tests ALTER COLUMN pass_score_pct SET DEFAULT 80`);
+    await client.query(`UPDATE tests SET pass_score_pct = 80 WHERE pass_score_pct = 90`);
+    // Mock exam shared answer key — visible to all students once teacher posts it
+    await client.query(`ALTER TABLE mock_exams ADD COLUMN IF NOT EXISTS answer_text TEXT`);
+    // Link a meeting to its specific lesson (online courses)
+    await client.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS lesson_id INTEGER REFERENCES lessons(id) ON DELETE SET NULL`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_meetings_lesson ON meetings(lesson_id)`);
+    // Default meeting time per lesson (HH:MM:SS) — used when auto-scheduling next-day meeting
+    await client.query(`ALTER TABLE lessons ADD COLUMN IF NOT EXISTS default_meeting_time TIME DEFAULT '19:00'`);
+    // Change the column default and update any existing rows still at 05:30
+    await client.query(`ALTER TABLE lessons ALTER COLUMN default_meeting_time SET DEFAULT '19:00'`);
+    await client.query(`UPDATE lessons SET default_meeting_time='19:00' WHERE default_meeting_time='05:30:00'`);
+    // Track whether a participant actually joined (attended) a meeting — for one-time-per-lesson logic
+    await client.query(`ALTER TABLE meeting_participants ADD COLUMN IF NOT EXISTS joined_at TIMESTAMPTZ`);
+    // Track which teacher (offline) created/registered this student
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_by INTEGER REFERENCES users(id) ON DELETE SET NULL`);
+    // Supplementary reading links per lesson stored as [{title,url}] JSON
+    await client.query(`ALTER TABLE lessons ADD COLUMN IF NOT EXISTS supplementary_links JSONB DEFAULT '[]'`);
 
     await client.query('COMMIT');
     console.log('✅ Migration completed — 31 tables created');

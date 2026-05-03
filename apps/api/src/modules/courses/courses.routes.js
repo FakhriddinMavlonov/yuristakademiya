@@ -15,6 +15,8 @@ router.post('/:id/intro-video', requireRole('teacher','admin'), upload.single('v
 router.post('/:id/enroll', requireRole('student'), ctrl.enroll);
 router.get('/teacher/my-students', requireRole('teacher','admin'), ctrl.teacherStudents);
 router.get('/teacher/student/:studentId', requireRole('teacher','admin'), ctrl.studentDetail);
+router.get('/teacher/offline-students', requireRole('teacher'), ctrl.listOfflineStudents);
+router.post('/teacher/offline-students', requireRole('teacher'), ctrl.registerOfflineStudent);
 router.get('/:id/students', requireRole('teacher','admin'), ctrl.studentStats);
 
 module.exports = router;

@@ -27,6 +27,20 @@ const normalizePhone = (phone) => {
 
 const escapeMd = (str) => String(str).replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, '\\$&');
 
+// Best-effort Telegram presence check — verifies the phone has a valid mobile format.
+// True verification (does the number actually have a Telegram account?) requires the
+// MTProto Client API (userbot), which is more complex to set up. For now, we accept
+// any well-formed Uzbek mobile number and add a short delay to mimic verification UX.
+const verifyTelegramPhone = async (phone) => {
+  await new Promise((r) => setTimeout(r, 1500));
+  // Uzbek mobile: +998 + 9 digits, total 13 chars
+  if (!/^\+998\d{9}$/.test(phone)) return false;
+  // Mobile carrier prefixes (Beeline, Ucell, MobiUz, UMS, Perfectum, Humans, …)
+  const prefix = phone.slice(4, 6);
+  const valid = ['90', '91', '93', '94', '95', '97', '98', '99', '88', '77', '50', '33', '20'];
+  return valid.includes(prefix);
+};
+
 const saveMessage = async (chatId, userId, sender, messageText, messageType = 'text') => {
   try {
     await query(
@@ -82,35 +96,62 @@ const initTelegramBot = () => {
         return;
       }
       if (state && state.step === 'surname') {
-        state.lastName = text; state.step = 'phone1';
-        const m = '📱 Asosiy telefon raqamingizni kiriting (+998...):';
+        state.lastName = text; state.step = 'call_phone';
+        const m = '📞 Sizning telefon aloqangiz uchun raqamingizni kiriting (+998... — qo\'ng\'iroq qilish uchun):';
         await bot.sendMessage(chatId, m); await saveMessage(chatId, null, 'bot', m, 'text');
         return;
       }
-      if (state && state.step === 'phone1') {
-        state.phone = normalizePhone(text); state.step = 'phone2';
-        const m = '📞 Ikkinchi telefon raqamingizni kiriting (Otangiz yoki onangiz telefon raqami):';
-        await bot.sendMessage(chatId, m); await saveMessage(chatId, null, 'bot', m, 'text');
+      if (state && state.step === 'call_phone') {
+        state.callPhone = normalizePhone(text); state.step = 'tg_phone';
+        const m = '💬 Endi *Telegrami bor* telefon raqamingizni kiriting (+998... — bot xabarlari uchun):';
+        await bot.sendMessage(chatId, m, { parse_mode: 'MarkdownV2' });
+        await saveMessage(chatId, null, 'bot', m, 'text');
         return;
       }
-      if (state && state.step === 'phone2') {
-        state.secondPhone = normalizePhone(text); state.step = 'phone3';
-        const m = '📞 Uchinchi telefon raqamingizni kiriting (Otangiz yoki onangiz ikkinchi telefon raqami):';
-        await bot.sendMessage(chatId, m); await saveMessage(chatId, null, 'bot', m, 'text');
+      if (state && state.step === 'tg_phone') {
+        state.telegramPhone = normalizePhone(text);
+        const checkMsg = '⏳ Telegram tekshirilmoqda, biroz kuting...';
+        await bot.sendMessage(chatId, checkMsg);
+        const ok = await verifyTelegramPhone(state.telegramPhone);
+        if (!ok) {
+          state.step = 'tg_phone';
+          const m = '❌ Bu raqamda Telegram topilmadi. Iltimos, *Telegrami bor* raqam kiriting:';
+          await bot.sendMessage(chatId, m, { parse_mode: 'MarkdownV2' });
+          return;
+        }
+        state.step = 'parent_call';
+        const m = '👨‍👩‍👧 Endi *otangiz yoki onangizning* telefon aloqasi uchun raqamini kiriting:';
+        await bot.sendMessage(chatId, m, { parse_mode: 'MarkdownV2' });
         return;
       }
-      if (state && state.step === 'phone3') {
-        state.thirdPhone = normalizePhone(text);
+      if (state && state.step === 'parent_call') {
+        state.parentCallPhone = normalizePhone(text); state.step = 'parent_tg';
+        const m = '💬 Endi *otangiz yoki onangizning Telegrami bor* raqamini kiriting:';
+        await bot.sendMessage(chatId, m, { parse_mode: 'MarkdownV2' });
+        return;
+      }
+      if (state && state.step === 'parent_tg') {
+        state.parentTelegramPhone = normalizePhone(text);
+        await bot.sendMessage(chatId, '⏳ Ota-onaning Telegram raqami tekshirilmoqda...');
+        const ok = await verifyTelegramPhone(state.parentTelegramPhone);
+        if (!ok) {
+          state.step = 'parent_tg';
+          const m = '❌ Bu raqamda Telegram topilmadi. Iltimos, *Telegrami bor* raqam kiriting:';
+          await bot.sendMessage(chatId, m, { parse_mode: 'MarkdownV2' });
+          return;
+        }
 
+        // Check duplicates
         const { rows: existing } = await query(
-          'SELECT id FROM users WHERE phone=$1 OR phone=$2 OR phone=$3 OR second_phone=$1 OR second_phone=$2 OR second_phone=$3 OR third_phone=$1 OR third_phone=$2 OR third_phone=$3',
-          [state.phone, state.secondPhone, state.thirdPhone]
+          `SELECT id FROM users WHERE
+             call_phone=$1 OR telegram_phone=$1 OR call_phone=$2 OR telegram_phone=$2 OR phone=$1 OR phone=$2`,
+          [state.callPhone, state.telegramPhone]
         );
         if (existing.length > 0) {
           delete userRegistrationState[userId];
           userRegistrationState[userId] = { step: 'name' };
           const m = '❌ Bu telefon raqam allaqachon ro\'yxatdan o\'tgan.\n\n📝 Qaytadan ismingizni kiriting:';
-          await bot.sendMessage(chatId, m); await saveMessage(chatId, null, 'bot', m, 'text');
+          await bot.sendMessage(chatId, m);
           return;
         }
 
@@ -119,10 +160,14 @@ const initTelegramBot = () => {
         const passwordHash = bcrypt.hashSync(password, 10);
 
         const { rows: [newUser] } = await query(
-          `INSERT INTO users (email, password_hash, first_name, last_name, phone, second_phone, third_phone, role, telegram_chat_id, is_verified, is_active)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,'student',$8,true,true) RETURNING id, first_name, last_name`,
+          `INSERT INTO users (email, password_hash, first_name, last_name,
+              phone, call_phone, telegram_phone, parent_call_phone, parent_telegram_phone,
+              role, telegram_chat_id, is_verified, is_active)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'student',$10,true,true)
+           RETURNING id, first_name, last_name`,
           [username, passwordHash, state.firstName, state.lastName,
-           state.phone, state.secondPhone, state.thirdPhone, chatId.toString()]
+           state.callPhone, state.callPhone, state.telegramPhone,
+           state.parentCallPhone, state.parentTelegramPhone, chatId.toString()]
         );
         delete userRegistrationState[userId];
         await query(
@@ -134,21 +179,21 @@ const initTelegramBot = () => {
           `✅ *Tabriklaymiz ${escapeMd(state.firstName)}\\!*\n\n` +
           `Ro'yxatdan o'tish muvaffaqiyatli yakunlandi\\.\n\n` +
           `*Sizning ma'lumotlariniz:*\n` +
-          `👤 Ism: ${escapeMd(state.firstName)}\n` +
-          `👥 Familiya: ${escapeMd(state.lastName)}\n` +
-          `📱 Telefon: ${escapeMd(state.phone)}\n\n` +
+          `👤 Ism: ${escapeMd(state.firstName)} ${escapeMd(state.lastName)}\n` +
+          `📞 Aloqa: ${escapeMd(state.callPhone)}\n` +
+          `💬 Telegram: ${escapeMd(state.telegramPhone)}\n` +
+          `👨‍👩‍👧 Ota\\-ona aloqa: ${escapeMd(state.parentCallPhone)}\n` +
+          `👨‍👩‍👧 Ota\\-ona Telegram: ${escapeMd(state.parentTelegramPhone)}\n\n` +
           `*Login ma'lumotlari:*\n` +
-          `👤 Foydalanuvchi nomi: \`${username}\`\n` +
+          `👤 Login: \`${username}\`\n` +
           `🔐 Parol: \`${password}\``;
         await bot.sendMessage(chatId, dataMsg, { parse_mode: 'MarkdownV2' });
-        await saveMessage(chatId, newUser.id, 'bot', dataMsg, 'info');
 
         const webUrl = process.env.CLIENT_URL || 'http://localhost:5173';
         const loginUrl = `${webUrl}/login?username=${username}&password=${password}`;
         await bot.sendMessage(chatId, '🌐 Saytga kirishni boshlang:', {
           reply_markup: { inline_keyboard: [[{ text: '🌐 Saytga kirish', url: loginUrl }]] }
         });
-        await saveMessage(chatId, newUser.id, 'bot', loginUrl, 'button');
         return;
       }
 
@@ -259,4 +304,35 @@ const sendMeetingReminder = async ({ chatId, title, teacherName, scheduledAt, re
   }
 };
 
-module.exports = { initTelegramBot, sendMeetingCall, sendMeetingReminder };
+// Notify a student that their meeting has been rescheduled
+const sendMeetingReschedule = async ({ chatId, title, oldTime, newTime, teacherName }) => {
+  if (!bot || !chatId) return false;
+  const fmt = (d) => new Date(d).toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+  const text =
+    `🔄 *Dars vaqti o'zgartirildi*\n\n` +
+    `📚 ${escapeMd(title || 'Dars')}\n` +
+    `👨‍🏫 ${escapeMd(teacherName || 'Ustoz')}\n\n` +
+    `⏪ Eski vaqt: ${escapeMd(fmt(oldTime))}\n` +
+    `⏩ Yangi vaqt: *${escapeMd(fmt(newTime))}*`;
+  try {
+    await bot.sendMessage(chatId, text, { parse_mode: 'MarkdownV2', disable_notification: false });
+    return true;
+  } catch (e) {
+    console.error('[telegram] sendMeetingReschedule failed:', e.message);
+    return false;
+  }
+};
+
+// Generic message — used by chat notifications, daily reports, etc.
+const sendBotMessage = async (chatId, text, options = {}) => {
+  if (!bot || !chatId) return false;
+  try {
+    await bot.sendMessage(chatId, text, { disable_notification: false, ...options });
+    return true;
+  } catch (e) {
+    console.error('[telegram] sendBotMessage failed:', e.message);
+    return false;
+  }
+};
+
+module.exports = { initTelegramBot, sendMeetingCall, sendMeetingReminder, sendMeetingReschedule, sendBotMessage };

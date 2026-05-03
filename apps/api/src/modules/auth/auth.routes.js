@@ -10,6 +10,7 @@ router.post('/login', authLimit, ctrl.login);
 router.post('/refresh', ctrl.refresh);
 router.post('/magic-exchange', ctrl.magicExchange);
 router.get('/me', auth, ctrl.me);
+router.patch('/me', auth, ctrl.updateProfile);
 router.get('/verify-status/:phone', ctrl.verifyStatus);
 
 module.exports = router;

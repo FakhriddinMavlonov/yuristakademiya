@@ -22,8 +22,8 @@ export default function TeacherCourses() {
   const [list, setList] = useState([]);
   const [tab, setTab] = useState('list');
   const [editTarget, setEditTarget] = useState(null);
-  const [form, setForm] = useState({ title: '', description: '', category: '', level: 'beginner', status: 'draft', banner_gradient: GRADIENTS[0] });
-  const { showToast } = useStore();
+  const [form, setForm] = useState({ title: '', description: '', category: '', level: 'beginner', status: 'draft', banner_gradient: GRADIENTS[0], mode: 'online' });
+  const { showToast, mode: globalMode } = useStore();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -34,13 +34,14 @@ export default function TeacherCourses() {
   const [newCategoryText, setNewCategoryText] = useState('');
 
   useEffect(() => {
-    coursesApi.list().then(d => { setList(d); setLoading(false); }).catch(() => setLoading(false));
-    setForm(f => ({ ...f, category: defaultCategory }));
-  }, []);
+    setLoading(true);
+    coursesApi.list(globalMode).then(d => { setList(d); setLoading(false); }).catch(() => setLoading(false));
+    setForm(f => ({ ...f, category: defaultCategory, mode: globalMode }));
+  }, [globalMode]);
 
   const openCreate = () => {
     setEditTarget(null);
-    setForm({ title: '', description: '', category: defaultCategory, level: 'beginner', status: 'draft', banner_gradient: GRADIENTS[0] });
+    setForm({ title: '', description: '', category: defaultCategory, level: 'beginner', status: 'draft', banner_gradient: GRADIENTS[0], mode: globalMode });
     setTab('create');
   };
 
@@ -247,6 +248,13 @@ export default function TeacherCourses() {
                     <option value="beginner">{t('levels.beginner')}</option>
                     <option value="intermediate">{t('levels.intermediate')}</option>
                     <option value="advanced">{t('levels.advanced')}</option>
+                  </select>
+                </div>
+                <div className="fgroup">
+                  <div className="flabel">Format</div>
+                  <select className="finput" value={form.mode || 'online'} onChange={(e) => setForm({ ...form, mode: e.target.value })}>
+                    <option value="online">🌐 Online</option>
+                    <option value="offline">🏫 Offline</option>
                   </select>
                 </div>
               </div>

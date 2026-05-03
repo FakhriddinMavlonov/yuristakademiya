@@ -107,7 +107,7 @@ export default function StudentTest() {
                 <div className="stat-lbl">{testData.time_limit_minutes ? t('student.test.minutes') : t('student.test.noTime')}</div>
               </div>
               <div className="stat-card">
-                <div className="stat-num" style={{ fontSize: 22, color: 'var(--green)' }}>{testData.pass_score_pct || 90}%</div>
+                <div className="stat-num" style={{ fontSize: 22, color: 'var(--green)' }}>{testData.pass_score_pct || 80}%</div>
                 <div className="stat-lbl">{t('student.test.passScore')}</div>
               </div>
             </div>
@@ -240,7 +240,7 @@ export default function StudentTest() {
   if (phase === 'result' && result) {
     const passed = result.passed;
     const scorePct = result.scorePct ?? 0;
-    const passScorePct = result.passScorePct || testData?.pass_score_pct || 90;
+    const passScorePct = result.passScorePct || testData?.pass_score_pct || 80;
 
     return (
       <div className="page" style={{ maxWidth: 520, margin: '0 auto', background: 'var(--bg)', overflowY: 'auto' }}>

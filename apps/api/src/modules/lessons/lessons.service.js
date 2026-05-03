@@ -26,13 +26,14 @@ const listByCourse = async (courseId, userId, role) => {
   `, [courseId, userId]);
 
   if (role === 'student') {
-    // Unlock logic: lesson unlocked if previous lesson test passed (>=90%) or it's the first lesson
+    // Unlock logic: previous lesson requires BOTH test passed (≥80%) AND homework submitted
     return lessons.map((l, i) => {
       let locked = false;
       if (i > 0) {
         const prev = lessons[i - 1];
-        const prevPassed = !prev.test_id || (prev.best_score !== null && prev.best_score >= (prev.pass_score_pct || 90));
-        locked = !prevPassed;
+        const testOk = !prev.test_id || (prev.best_score !== null && prev.best_score >= (prev.pass_score_pct || 80));
+        const homeworkOk = !prev.assignment_id || !!prev.submitted_at;
+        locked = !(testOk && homeworkOk);
       }
       return { ...l, locked };
     });
@@ -67,14 +68,18 @@ const create = async (courseId, teacherId, data) => {
 };
 
 const update = async (id, teacherId, data) => {
+  const suppLinks = data.supplementaryLinks !== undefined
+    ? JSON.stringify(data.supplementaryLinks)
+    : undefined;
   const { rows } = await query(`
     UPDATE lessons SET
       title=COALESCE($1,title), description=COALESCE($2,description),
       order_num=COALESCE($3,order_num), is_published=COALESCE($4,is_published),
+      supplementary_links=COALESCE($7::jsonb, supplementary_links),
       updated_at=NOW()
     WHERE id=$5 AND course_id IN (SELECT id FROM courses WHERE teacher_id=$6)
     RETURNING *
-  `, [data.title, data.description, data.orderNum, data.isPublished, id, teacherId]);
+  `, [data.title, data.description, data.orderNum, data.isPublished, id, teacherId, suppLinks ?? null]);
   if (!rows[0]) throw new AppError('Lesson not found', 404);
   return rows[0];
 };

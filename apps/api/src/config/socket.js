@@ -92,4 +92,11 @@ const notify = (userId, event, data) => {
   if (io) io.to(`user:${userId}`).emit(event, data);
 };
 
-module.exports = { initSocket, getIo, notify };
+// Returns true if the user has at least one connected socket (i.e. site is open)
+const isUserOnline = async (userId) => {
+  if (!io) return false;
+  const sockets = await io.in(`user:${userId}`).fetchSockets();
+  return sockets.length > 0;
+};
+
+module.exports = { initSocket, getIo, notify, isUserOnline };

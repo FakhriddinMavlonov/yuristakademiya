@@ -4,7 +4,7 @@ const { AppError } = require('../../middleware/errorHandler');
 const { notify } = require('../../config/socket');
 const pushSvc = require('../push/push.service');
 const authSvc = require('../auth/auth.service');
-const { sendMeetingCall } = require('../../config/telegram');
+const { sendMeetingCall, sendMeetingReschedule } = require('../../config/telegram');
 
 const DAILY_API = 'https://api.daily.co/v1';
 const DAILY_API_KEY = process.env.DAILY_API_KEY;
@@ -89,12 +89,13 @@ const create = async (teacherId, data) => {
   const dailyRoom = await createDailyRoom(data.courseId || data.groupId, roomName);
 
   const { rows: [meeting] } = await query(`
-    INSERT INTO meetings (course_id, group_id, teacher_id, title, description, scheduled_at, duration_minutes, audience_type, daily_room_name, daily_room_url)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *
+    INSERT INTO meetings (course_id, group_id, teacher_id, title, description, scheduled_at, duration_minutes, audience_type, daily_room_name, daily_room_url, lesson_id)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *
   `, [
     data.courseId || null, data.groupId || null, teacherId,
     data.title, data.description, data.scheduledAt,
     data.durationMinutes || 60, data.audienceType || 'all', roomName, dailyRoom.url,
+    data.lessonId || null,
   ]);
 
   let recipientIds = [];
@@ -148,7 +149,20 @@ const ringStudents = async (meeting, teacherId) => {
     groupStudents.forEach((r) => userIdSet.add(r.user_id));
   }
 
-  const userIds = [...userIdSet];
+  // For lesson-linked meetings: exclude students who already attended a meeting for this lesson
+  let userIds = [...userIdSet];
+  if (meeting.lesson_id && userIds.length) {
+    const { rows: alreadyJoined } = await query(`
+      SELECT DISTINCT mp.user_id FROM meeting_participants mp
+      JOIN meetings m ON m.id = mp.meeting_id
+      WHERE m.lesson_id = $1 AND mp.joined_at IS NOT NULL AND mp.user_id = ANY($2::int[])
+    `, [meeting.lesson_id, userIds]);
+    const joinedSet = new Set(alreadyJoined.map((r) => r.user_id));
+    userIds = userIds.filter((id) => !joinedSet.has(id));
+    if (joinedSet.size > 0) {
+      console.log(`[meetings] lesson ${meeting.lesson_id}: skipping ${joinedSet.size} already-attended students`);
+    }
+  }
   if (!userIds.length) {
     console.warn(`[meetings] meeting ${meeting.id} has no participants — nobody to ring`);
     return;
@@ -266,6 +280,14 @@ const getJoinUrl = async (meetingId, userId, isOwner = false) => {
     await ringStudents(meeting, userId);
   }
 
+  // Record that this student actually joined (for one-time-per-lesson enforcement)
+  if (!isTeacher) {
+    await query(`
+      UPDATE meeting_participants SET joined_at = COALESCE(joined_at, NOW())
+      WHERE meeting_id=$1 AND user_id=$2
+    `, [meetingId, userId]);
+  }
+
   const { rows: [user] } = await query('SELECT id, first_name, last_name FROM users WHERE id=$1', [userId]);
   const token = await generateDailyToken(roomName, userId, `${user.first_name} ${user.last_name}`, isTeacher);
 
@@ -295,4 +317,187 @@ const removeParticipant = async (meetingId, teacherId, participantId) => {
   return { removed: true };
 };
 
-module.exports = { list, create, updateStatus, getStudentProfiles, getJoinUrl, addParticipant, removeParticipant };
+// Find all students who finished a lesson (test ≥80% AND homework submitted)
+// but haven't been added to a scheduled meeting for that lesson yet.
+const getReadyStudentsForLesson = async (lessonId, teacherId) => {
+  const { rows: [lesson] } = await query(`
+    SELECT l.id, l.title, l.course_id, c.teacher_id, c.title AS course_title,
+           l.default_meeting_time
+    FROM lessons l JOIN courses c ON c.id=l.course_id
+    WHERE l.id=$1
+  `, [lessonId]);
+  if (!lesson) throw new AppError('Lesson not found', 404);
+  if (lesson.teacher_id !== teacherId) throw new AppError('Forbidden', 403);
+
+  const { rows } = await query(`
+    SELECT u.id, u.first_name, u.last_name, u.lesson_days,
+      ta_best.score_pct AS test_score,
+      sub.submitted_at AS hw_submitted_at,
+      already.meeting_id AS already_in_meeting
+    FROM enrollments e
+    JOIN users u ON u.id = e.user_id
+    LEFT JOIN tests t ON t.lesson_id = $1
+    LEFT JOIN LATERAL (
+      SELECT score_pct FROM test_attempts
+      WHERE user_id=u.id AND test_id=t.id AND submitted_at IS NOT NULL
+      ORDER BY score_pct DESC LIMIT 1
+    ) ta_best ON true
+    LEFT JOIN assignments a ON a.lesson_id = $1
+    LEFT JOIN assignment_submissions sub ON sub.assignment_id=a.id AND sub.user_id=u.id
+    LEFT JOIN LATERAL (
+      SELECT mp.meeting_id FROM meeting_participants mp
+      JOIN meetings m ON m.id = mp.meeting_id
+      WHERE mp.user_id=u.id AND m.lesson_id=$1 AND m.status IN ('scheduled','live')
+      LIMIT 1
+    ) already ON true
+    WHERE e.course_id = $2
+      AND ta_best.score_pct >= 80
+      AND sub.submitted_at IS NOT NULL
+    ORDER BY u.first_name, u.last_name
+  `, [lessonId, lesson.course_id]);
+
+  return { lesson, students: rows };
+};
+
+// Auto-schedule a meeting for a lesson with the given participants.
+// Defaults to TOMORROW at the lesson's default_meeting_time (19:00).
+const scheduleLessonMeeting = async (lessonId, teacherId, participantIds, customTime) => {
+  const { rows: [lesson] } = await query(`
+    SELECT l.id, l.title, l.course_id, c.teacher_id, l.default_meeting_time
+    FROM lessons l JOIN courses c ON c.id=l.course_id
+    WHERE l.id=$1
+  `, [lessonId]);
+  if (!lesson) throw new AppError('Lesson not found', 404);
+  if (lesson.teacher_id !== teacherId) throw new AppError('Forbidden', 403);
+  if (!Array.isArray(participantIds) || !participantIds.length) {
+    throw new AppError('Kamida bitta o\'quvchi tanlanishi kerak', 400);
+  }
+
+  // Default: tomorrow 19:00 (Tashkent timezone)
+  let scheduledAt;
+  if (customTime) {
+    scheduledAt = new Date(customTime);
+  } else {
+    const time = (lesson.default_meeting_time || '19:00:00').slice(0, 5); // HH:MM
+    const [hh, mm] = time.split(':').map(Number);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(hh, mm, 0, 0);
+    scheduledAt = tomorrow;
+  }
+
+  return create(teacherId, {
+    courseId: lesson.course_id,
+    title: `${lesson.title} — Meeting`,
+    description: 'Dars yakunidan keyingi suhbat',
+    scheduledAt,
+    durationMinutes: 60,
+    audienceType: 'selected',
+    participantIds,
+    lessonId,
+  });
+};
+
+// Reschedule a meeting. Allowed only ≥12h before the current scheduled time.
+// Notifies all participants via Telegram about the change.
+const reschedule = async (meetingId, teacherId, newScheduledAt) => {
+  if (!newScheduledAt) throw new AppError('newScheduledAt required', 400);
+  const newDate = new Date(newScheduledAt);
+  if (isNaN(newDate.getTime())) throw new AppError('Invalid newScheduledAt', 400);
+
+  const { rows: [meeting] } = await query(`
+    SELECT m.*, u.first_name||' '||u.last_name AS teacher_name
+    FROM meetings m JOIN users u ON u.id = m.teacher_id
+    WHERE m.id=$1 AND m.teacher_id=$2
+  `, [meetingId, teacherId]);
+  if (!meeting) throw new AppError('Meeting not found', 404);
+  if (meeting.status === 'live' || meeting.status === 'ended') {
+    throw new AppError("Live yoki tugagan meeting'ni o'zgartirib bo'lmaydi", 400);
+  }
+
+  const now = Date.now();
+  const oldTime = new Date(meeting.scheduled_at).getTime();
+  const hoursLeft = (oldTime - now) / 3_600_000;
+  if (hoursLeft < 12) {
+    throw new AppError("Meeting boshlanishiga 12 soatdan kam vaqt qoldi — o'zgartirib bo'lmaydi", 400);
+  }
+
+  await query('UPDATE meetings SET scheduled_at=$1 WHERE id=$2', [newDate, meetingId]);
+
+  // Reset reminder log so reminders fire again for new time
+  await query('DELETE FROM meeting_reminder_log WHERE meeting_id=$1', [meetingId]);
+
+  // Notify all participants via Telegram
+  const oldTimeIso = meeting.scheduled_at;
+  const { rows: participants } = await query(`
+    SELECT DISTINCT u.telegram_chat_id FROM users u WHERE u.telegram_chat_id IS NOT NULL AND u.id IN (
+      SELECT user_id FROM meeting_participants WHERE meeting_id=$1
+      UNION
+      SELECT user_id FROM enrollments WHERE course_id=$2
+      UNION
+      SELECT user_id FROM group_students WHERE group_id=$3
+    )
+  `, [meetingId, meeting.course_id, meeting.group_id]);
+
+  let sent = 0;
+  await Promise.all(participants.map(async (p) => {
+    const ok = await sendMeetingReschedule({
+      chatId: p.telegram_chat_id,
+      title: meeting.title,
+      teacherName: meeting.teacher_name,
+      oldTime: oldTimeIso,
+      newTime: newDate,
+    });
+    if (ok) sent++;
+  }));
+  console.log(`[meetings] reschedule ${meetingId} → notified ${sent}/${participants.length} students`);
+
+  return { ...meeting, scheduled_at: newDate, notified: sent };
+};
+
+// For online teacher meetings page: courses → lessons with ready-student count
+const getCoursesWithLessonStats = async (teacherId) => {
+  const { rows: courses } = await query(`
+    SELECT id, title, mode FROM courses WHERE teacher_id=$1 AND mode='online' ORDER BY created_at DESC
+  `, [teacherId]);
+
+  for (const course of courses) {
+    const { rows: lessons } = await query(`
+      SELECT l.id, l.title, l.order_num,
+        (
+          SELECT COUNT(DISTINCT e.user_id) FROM enrollments e
+          JOIN tests t ON t.lesson_id = l.id
+          JOIN LATERAL (
+            SELECT score_pct FROM test_attempts
+            WHERE user_id = e.user_id AND test_id = t.id AND submitted_at IS NOT NULL
+            ORDER BY score_pct DESC LIMIT 1
+          ) ta ON ta.score_pct >= 80
+          JOIN assignments a ON a.lesson_id = l.id
+          JOIN assignment_submissions sub ON sub.assignment_id = a.id AND sub.user_id = e.user_id
+          WHERE e.course_id = l.course_id
+            AND NOT EXISTS (
+              SELECT 1 FROM meeting_participants mp
+              JOIN meetings m ON m.id = mp.meeting_id
+              WHERE mp.user_id = e.user_id AND m.lesson_id = l.id AND mp.joined_at IS NOT NULL
+            )
+        )::int AS ready_count,
+        (
+          SELECT m.id FROM meetings m
+          WHERE m.lesson_id = l.id AND m.status IN ('scheduled','live')
+          ORDER BY m.scheduled_at DESC LIMIT 1
+        ) AS active_meeting_id,
+        (
+          SELECT m.status FROM meetings m
+          WHERE m.lesson_id = l.id AND m.status IN ('scheduled','live')
+          ORDER BY m.scheduled_at DESC LIMIT 1
+        ) AS active_meeting_status
+      FROM lessons l
+      WHERE l.course_id = $1 AND l.is_published = true
+      ORDER BY l.order_num
+    `, [course.id]);
+    course.lessons = lessons;
+  }
+  return courses;
+};
+
+module.exports = { list, create, updateStatus, getStudentProfiles, getJoinUrl, addParticipant, removeParticipant, reschedule, getReadyStudentsForLesson, scheduleLessonMeeting, getCoursesWithLessonStats };

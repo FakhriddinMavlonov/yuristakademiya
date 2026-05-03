@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { courses as coursesApi, meetings as meetingsApi } from '../../api';
 import { PageLoader, SkeletonStatCards, SkeletonCard } from '../../components/ui/Loading';
 import { ensurePushSubscription, isPushSupported } from '../../lib/push';
+import useStore from '../../store/useStore';
 
 function PushPermissionBanner() {
   const [permission, setPermission] = useState(() =>
@@ -114,16 +115,18 @@ export default function StudentDashboard() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  const { mode } = useStore();
   useEffect(() => {
+    setLoading(true);
     Promise.all([
-      coursesApi.list().catch(() => []),
+      coursesApi.list(mode).catch(() => []),
       meetingsApi.list().catch(() => []),
     ]).then(([courses, meetings]) => {
       setCourseList(courses);
       setMeetingList(meetings);
       setLoading(false);
     });
-  }, []);
+  }, [mode]);
 
   const enrolled = courseList.filter(c => c.enrolled_at);
   const totalLessons = enrolled.reduce((s, c) => s + (c.completed_lessons || 0), 0);

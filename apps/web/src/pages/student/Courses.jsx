@@ -17,13 +17,14 @@ export default function StudentCourses() {
   const [courseList, setCourseList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [enrollingId, setEnrollingId] = useState(null);
-  const { showToast } = useStore();
+  const { showToast, mode } = useStore();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
   useEffect(() => {
-    coursesApi.list().then((d) => { setCourseList(d); setLoading(false); }).catch(() => setLoading(false));
-  }, []);
+    setLoading(true);
+    coursesApi.list(mode).then((d) => { setCourseList(d); setLoading(false); }).catch(() => setLoading(false));
+  }, [mode]);
 
   const enroll = async (e, courseId) => {
     e.stopPropagation();

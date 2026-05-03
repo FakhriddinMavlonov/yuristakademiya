@@ -125,7 +125,7 @@ const submitAttempt = async (userId, attemptId, answers) => {
     }
 
     const scorePct = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
-    const passed = scorePct >= (attempt.pass_score_pct || 90);
+    const passed = scorePct >= (attempt.pass_score_pct || 80);
 
     await client.query(`
       UPDATE test_attempts SET score_pct=$1, passed=$2, submitted_at=NOW() WHERE id=$3
@@ -154,7 +154,7 @@ const submitAttempt = async (userId, attemptId, answers) => {
       totalPoints,
       correctCount: earnedPoints,
       totalCount: totalPoints,
-      passScorePct: testInfo?.pass_score_pct || 90,
+      passScorePct: testInfo?.pass_score_pct || 80,
       showAnswers: testInfo?.show_answers_after,
       answers: answersReview,
     };

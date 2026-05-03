@@ -71,11 +71,12 @@ export const auth = {
   refresh: (refreshToken) => api.post('/auth/refresh', { refreshToken }),
   magicExchange: (token) => api.post('/auth/magic-exchange', { token }),
   me: () => api.get('/auth/me'),
+  updateMe: (data) => api.patch('/auth/me', data),
   verifyStatus: (phone) => api.get(`/auth/verify-status/${encodeURIComponent(phone)}`),
 };
 
 export const courses = {
-  list: () => api.get('/courses'),
+  list: (mode) => api.get('/courses', { params: mode ? { mode } : {} }),
   myStudents: () => api.get('/courses/teacher/my-students'),
   studentDetail: (studentId) => api.get(`/courses/teacher/student/${studentId}`),
   get: (id) => api.get(`/courses/${id}`),
@@ -92,6 +93,8 @@ export const courses = {
   },
   enroll: (id) => api.post(`/courses/${id}/enroll`),
   students: (id) => api.get(`/courses/${id}/students`),
+  offlineStudents: () => api.get('/courses/teacher/offline-students'),
+  registerOfflineStudent: (d) => api.post('/courses/teacher/offline-students', d),
 };
 
 export const lessons = {
@@ -145,6 +148,11 @@ export const meetings = {
   getJoinUrl: (id) => api.get(`/meetings/${id}/join`),
   addParticipant: (id, participantId) => api.post(`/meetings/${id}/participants`, { participantId }),
   removeParticipant: (id, participantId) => api.delete(`/meetings/${id}/participants`, { participantId }),
+  reschedule: (id, scheduledAt) => api.patch(`/meetings/${id}/reschedule`, { scheduledAt }),
+  readyForLesson: (lessonId) => api.get(`/meetings/lesson/${lessonId}/ready`),
+  scheduleForLesson: (lessonId, participantIds, scheduledAt) =>
+    api.post(`/meetings/lesson/${lessonId}/schedule`, { participantIds, scheduledAt }),
+  coursesWithLessons: () => api.get('/meetings/teacher/courses-lessons'),
 };
 
 export const library = {
