@@ -1,5 +1,6 @@
 const Groq = require('groq-sdk');
 const { AppError } = require('../../middleware/errorHandler');
+const { query } = require('../../config/db');
 
 const getClient = () => {
   if (!process.env.GROQ_API_KEY) throw new AppError('GROQ_API_KEY not configured', 500);
@@ -119,4 +120,88 @@ async function checkHomework({ content, assignmentTitle }) {
   };
 }
 
-module.exports = { generateQuiz, checkHomework };
+async function chat({ userId, message, lessonId, groupLessonId }) {
+  if (!message || message.trim().length === 0) throw new AppError('Message is required', 400);
+
+  // Load or create conversation
+  let convRes = await query(
+    'SELECT * FROM ai_conversations WHERE user_id = $1 AND lesson_id IS NOT DISTINCT FROM $2 ORDER BY updated_at DESC LIMIT 1',
+    [userId, lessonId || null]
+  );
+
+  let conversation;
+  let messages = [];
+  if (convRes.rows.length === 0) {
+    const newConvRes = await query(
+      'INSERT INTO ai_conversations (user_id, lesson_id, group_lesson_id, messages) VALUES ($1, $2, $3, $4) RETURNING *',
+      [userId, lessonId || null, groupLessonId || null, JSON.stringify([])]
+    );
+    conversation = newConvRes.rows[0];
+  } else {
+    conversation = convRes.rows[0];
+    messages = conversation.messages || [];
+  }
+
+  // Build system prompt
+  let systemPrompt = "Siz yordamchi AI assistantsiz. O'quvchiga savollariga javob bersiz. Tushuntirish sodda va aniq bo'lsin.";
+  if (lessonId) {
+    const lessonRes = await query('SELECT title FROM lessons WHERE id = $1', [lessonId]);
+    if (lessonRes.rows.length > 0) {
+      systemPrompt += ` Dars: "${lessonRes.rows[0].title}". Shu dars kontekstida javob bering.`;
+    }
+  }
+
+  // Build messages array for Groq
+  const groqMessages = [
+    { role: 'system', content: systemPrompt },
+    ...messages,
+    { role: 'user', content: message },
+  ];
+
+  const groq = getClient();
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    temperature: 0.7,
+    max_tokens: 1024,
+    messages: groqMessages,
+  });
+
+  const aiReply = response.choices[0].message.content || "Javob berib bo'lmadi.";
+
+  // Append to messages
+  messages.push({ role: 'user', content: message });
+  messages.push({ role: 'assistant', content: aiReply });
+
+  // Keep only last 20 messages
+  if (messages.length > 20) messages = messages.slice(-20);
+
+  // Update conversation
+  await query(
+    'UPDATE ai_conversations SET messages = $1, updated_at = NOW() WHERE id = $2',
+    [JSON.stringify(messages), conversation.id]
+  );
+
+  return {
+    conversation_id: conversation.id,
+    reply: aiReply,
+    messages: messages.length,
+  };
+}
+
+async function getChatHistory(userId, lessonId = null) {
+  const res = await query(
+    'SELECT id, messages, created_at FROM ai_conversations WHERE user_id = $1 AND lesson_id IS NOT DISTINCT FROM $2 ORDER BY updated_at DESC LIMIT 1',
+    [userId, lessonId || null]
+  );
+
+  if (res.rows.length === 0) return { conversation_id: null, messages: [] };
+
+  const conversation = res.rows[0];
+  return {
+    conversation_id: conversation.id,
+    messages: conversation.messages || [],
+    created_at: conversation.created_at,
+  };
+}
+
+module.exports = { generateQuiz, checkHomework, chat, getChatHistory };

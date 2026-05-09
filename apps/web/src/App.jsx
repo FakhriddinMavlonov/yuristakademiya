@@ -12,6 +12,7 @@ import { ensurePushSubscription } from './lib/push';
 // Teacher pages
 import TeacherDashboard from './pages/teacher/Dashboard';
 import TeacherCourses from './pages/teacher/Courses';
+import Curricula from './pages/teacher/Curricula';
 import TeacherLessons from './pages/teacher/Lessons';
 import TestEditor from './pages/teacher/TestEditor';
 import Homework from './pages/teacher/Homework';
@@ -47,6 +48,14 @@ import TeacherExams from './pages/teacher/Exams';
 // Student schedule
 import StudentSchedule from './pages/student/Schedule';
 import StudentExams from './pages/student/Exams';
+
+// Sprint 1 pages
+import StudentFlashcards from './pages/student/Flashcards';
+import StudentGamification from './pages/student/Gamification';
+import TeacherFlashcards from './pages/teacher/Flashcards';
+import TeacherAnalytics from './pages/teacher/Analytics';
+import ParentDashboard from './pages/parent/Dashboard';
+import AiTutorWidget from './components/AiTutorWidget';
 
 import NotFound from './pages/NotFound';
 
@@ -115,6 +124,7 @@ export default function App() {
     <>
       <Toast />
       <IncomingCall />
+      {user?.role === 'student' && <AiTutorWidget />}
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/auto-join" element={<AutoJoin />} />
@@ -126,6 +136,7 @@ export default function App() {
         }>
           <Route index element={<TeacherDashboard />} />
           <Route path="courses" element={<TeacherCourses />} />
+          <Route path="curricula" element={<Curricula />} />
           <Route path="courses/:courseId/lessons" element={<TeacherLessons />} />
           <Route path="lessons/:lessonId/test" element={<TestEditor />} />
           <Route path="homework" element={<Homework />} />
@@ -136,6 +147,8 @@ export default function App() {
           <Route path="meetings/:meetingId/student/:studentId" element={<StudentDetail />} />
           <Route path="chat/:studentId" element={<TeacherChat />} />
           <Route path="chat" element={<TeacherChat />} />
+          <Route path="flashcards" element={<TeacherFlashcards />} />
+          <Route path="analytics" element={<TeacherAnalytics />} />
           <Route path="groups" element={<TeacherGroups />} />
           <Route path="exams" element={<TeacherExams />} />
         </Route>
@@ -156,6 +169,8 @@ export default function App() {
           <Route path="courses/:courseId" element={<CourseOverview />} />
           <Route path="courses/:courseId/lessons" element={<StudentLessons />} />
           <Route path="test/:testId" element={<StudentTest />} />
+          <Route path="flashcards" element={<StudentFlashcards />} />
+          <Route path="gamification" element={<StudentGamification />} />
           <Route path="meetings" element={<StudentMeetings />} />
           <Route path="chat" element={<StudentChat />} />
           <Route path="schedule" element={<StudentSchedule />} />
@@ -179,6 +194,14 @@ export default function App() {
           <Route path="payments" element={<AdminPayments />} />
           <Route path="salaries" element={<AdminSalaries />} />
           <Route path="groups" element={<AdminGroups />} />
+        </Route>
+
+        <Route path="/parent" element={
+          <ProtectedRoute roles={['parent']}>
+            <Shell role="parent" />
+          </ProtectedRoute>
+        }>
+          <Route path="dashboard" element={<ParentDashboard />} />
         </Route>
 
         <Route path="/" element={<Navigate to={defaultPath} replace />} />

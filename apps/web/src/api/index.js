@@ -182,6 +182,42 @@ export const groups = {
   addStudent: (id, userId) => api.post(`/groups/${id}/students`, { userId }),
   removeStudent: (id, userId) => api.delete(`/groups/${id}/students/${userId}`),
   setSchedule: (id, slots) => api.put(`/groups/${id}/schedule`, { slots }),
+  getLessons: (id) => api.get(`/groups/${id}/lessons`),
+  applyCurriculum: (id, curriculumId) => api.post(`/groups/${id}/apply-curriculum`, { curriculumId }),
+  addLesson: (id, d) => api.post(`/groups/${id}/lessons`, d),
+  updateLesson: (id, lid, d) => api.patch(`/groups/${id}/lessons/${lid}`, d),
+  uploadLessonVideo: (id, lid, file, onProgress) => {
+    const fd = new FormData();
+    fd.append('video', file);
+    return api.post(`/groups/${id}/lessons/${lid}/video`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (e) => onProgress?.(Math.round((e.loaded * 100) / e.total)),
+    });
+  },
+  uploadLessonMaterial: (id, lid, file, name, onProgress) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('name', name);
+    return api.post(`/groups/${id}/lessons/${lid}/materials`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (e) => onProgress?.(Math.round((e.loaded * 100) / e.total)),
+    });
+  },
+  completeLesson: (id, lid) => api.post(`/groups/${id}/lessons/${lid}/complete`),
+  removeLesson: (id, lid) => api.delete(`/groups/${id}/lessons/${lid}`),
+};
+
+export const curricula = {
+  list: () => api.get('/curricula'),
+  get: (id) => api.get(`/curricula/${id}`),
+  create: (d) => api.post('/curricula', d),
+  update: (id, d) => api.patch(`/curricula/${id}`, d),
+  remove: (id) => api.delete(`/curricula/${id}`),
+  addLesson: (id, d) => api.post(`/curricula/${id}/lessons`, d),
+  updateLesson: (id, lid, d) => api.patch(`/curricula/${id}/lessons/${lid}`, d),
+  removeLesson: (id, lid) => api.delete(`/curricula/${id}/lessons/${lid}`),
+  addTask: (id, lid, d) => api.post(`/curricula/${id}/lessons/${lid}/tasks`, d),
+  removeTask: (id, lid, tid) => api.delete(`/curricula/${id}/lessons/${lid}/tasks/${tid}`),
 };
 
 export const attendance = {
@@ -203,6 +239,8 @@ export const grades = {
 export const ai = {
   generateQuiz:  (data) => api.post('/ai/generate-quiz', data),
   checkHomework: (data) => api.post('/ai/check-homework', data),
+  chat:          (data) => api.post('/ai/chat', data),
+  getHistory:    (lessonId) => api.get(`/ai/history${lessonId ? `?lesson_id=${lessonId}` : ''}`),
 };
 
 export const exams = {
@@ -236,4 +274,34 @@ export const admin = {
   createPayment: (d) => api.post('/admin/payments', d),
   salaries: () => api.get('/admin/salaries'),
   createSalary: (d) => api.post('/admin/salaries', d),
+};
+
+// Sprint 1 Features
+export const gamification = {
+  getStats:      ()     => api.get('/gamification/stats'),
+  getLeaderboard:(gId)  => api.get(`/gamification/leaderboard${gId ? `?groupId=${gId}` : ''}`),
+  updateStreak:  ()     => api.post('/gamification/streak'),
+};
+
+export const flashcards = {
+  getDue:     ()        => api.get('/flashcards/due'),
+  review:     (id, ease) => api.post(`/flashcards/${id}/review`, { ease }),
+  listDecks:  ()        => api.get('/flashcards/decks'),
+  getDeck:    (id)      => api.get(`/flashcards/decks/${id}`),
+  createDeck: (d)       => api.post('/flashcards/decks', d),
+  addCard:    (id, d)   => api.post(`/flashcards/decks/${id}/cards`, d),
+  removeCard: (id, cid) => api.delete(`/flashcards/decks/${id}/cards/${cid}`),
+  removeDeck: (id)      => api.delete(`/flashcards/decks/${id}`),
+  generate:   (d)       => api.post('/flashcards/generate', d),
+};
+
+export const analytics = {
+  student: (id) => api.get(`/analytics/student/${id}`),
+  teacher: ()   => api.get('/analytics/teacher'),
+};
+
+export const parent = {
+  link:       (d)  => api.post('/parent/link', d),
+  getStats:   (id) => api.get(`/parent/students/${id}/stats`),
+  getStudents:(ph) => api.get(`/parent/students?phone=${encodeURIComponent(ph)}`),
 };

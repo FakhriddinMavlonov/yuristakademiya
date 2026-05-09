@@ -46,6 +46,13 @@ app.use('/api/grades', require('./modules/grades/grades.routes'));
 app.use('/api/ai',    require('./modules/ai/ai.routes'));
 app.use('/api/exams', require('./modules/exams/exams.routes'));
 app.use('/api/push',  require('./modules/push/push.routes'));
+app.use('/api/curricula', require('./modules/curricula/curricula.routes'));
+
+// Sprint 1 Features
+app.use('/api/gamification', require('./modules/gamification/gamification.routes'));
+app.use('/api/flashcards',   require('./modules/flashcards/flashcards.routes'));
+app.use('/api/parent',       require('./modules/parent/parent.routes'));
+app.use('/api/analytics',    require('./modules/analytics/analytics.routes'));
 
 // 👉 ERROR HANDLER (HAMMASIDAN KEYIN)
 app.use(errorHandler);

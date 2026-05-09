@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { groups as groupsApi, courses as coursesApi, attendance as attendanceApi, grades as gradesApi } from '../../api';
+import { groups as groupsApi, courses as coursesApi, attendance as attendanceApi, grades as gradesApi, curricula as curriculaApi } from '../../api';
 import useStore from '../../store/useStore';
 import Modal from '../../components/ui/Modal';
 import { SkeletonGrid, SkeletonCard } from '../../components/ui/Loading';
@@ -44,6 +44,21 @@ export default function TeacherGroups() {
   const [gradeLoading, setGradeLoading] = useState(false);
   const [gradeSaving, setGradeSaving] = useState(false);
 
+  // Lessons (Darslar)
+  const [lessons, setLessons] = useState([]);
+  const [lessonsLoading, setLessonsLoading] = useState(false);
+  const [expandedLesson, setExpandedLesson] = useState(null);
+  const [lessonEdits, setLessonEdits] = useState({});
+  const [lessonSaving, setLessonSaving] = useState(null);
+  const [videoUpload, setVideoUpload] = useState({});
+  const [materialUpload, setMaterialUpload] = useState({});
+  const [curriculumList, setCurriculumList] = useState([]);
+  const [curriculumModal, setCurriculumModal] = useState(false);
+  const [addLessonModal, setAddLessonModal] = useState(false);
+  const [addLessonForm, setAddLessonForm] = useState({ title: '', description: '' });
+  const videoInputRefs = useRef({});
+  const materialInputRefs = useRef({});
+
   useEffect(() => { load(); }, []);
 
   const load = async () => {
@@ -59,9 +74,21 @@ export default function TeacherGroups() {
       setSelected(detail);
       setScheduleSlots(detail.schedule || []);
       setDetailTab('students');
+      setExpandedLesson(null);
+      setLessonEdits({});
       await loadAttendance(detail.id, attendDate);
       await loadGrades(detail.id, gradeDate);
+      loadLessons(detail.id);
     } catch { showToast(t('groups.loadError')); }
+  };
+
+  const loadLessons = async (groupId) => {
+    setLessonsLoading(true);
+    try {
+      const data = await groupsApi.getLessons(groupId);
+      setLessons(data);
+    } catch { showToast('Darslarni yuklashda xatolik'); }
+    finally { setLessonsLoading(false); }
   };
 
   const createGroup = async () => {
@@ -163,6 +190,93 @@ export default function TeacherGroups() {
   const removeSlot = (i) => setScheduleSlots((p) => p.filter((_, idx) => idx !== i));
   const updateSlot = (i, key, val) => setScheduleSlots((p) => p.map((s, idx) => idx === i ? { ...s, [key]: val } : s));
 
+  const openCurriculumModal = async () => {
+    try {
+      const list = await curriculaApi.list();
+      setCurriculumList(list);
+      setCurriculumModal(true);
+    } catch { showToast('Kurs rejalarni yuklashda xatolik'); }
+  };
+
+  const applySelectedCurriculum = async (curriculumId) => {
+    try {
+      const newLessons = await groupsApi.applyCurriculum(selected.id, curriculumId);
+      setLessons(p => [...p, ...newLessons]);
+      setCurriculumModal(false);
+      showToast('Kurs reja qo\'llandi');
+    } catch (e) { showToast(e?.error || 'Xatolik'); }
+  };
+
+  const addManualLesson = async () => {
+    if (!addLessonForm.title.trim()) return showToast('Dars nomini kiriting');
+    try {
+      const newL = await groupsApi.addLesson(selected.id, addLessonForm);
+      setLessons(p => [...p, { ...newL, materials: [] }]);
+      setAddLessonForm({ title: '', description: '' });
+      setAddLessonModal(false);
+      showToast('Dars qo\'shildi');
+    } catch (e) { showToast(e?.error || 'Xatolik'); }
+  };
+
+  const saveLessonEdits = async (lessonId) => {
+    const edits = lessonEdits[lessonId];
+    if (!edits) return;
+    setLessonSaving(lessonId);
+    try {
+      const updated = await groupsApi.updateLesson(selected.id, lessonId, {
+        title: edits.title,
+        description: edits.description,
+        extraTasks: edits.extraTasks,
+      });
+      setLessons(p => p.map(l => l.id === lessonId ? { ...l, ...updated, materials: l.materials } : l));
+      showToast('Saqlandi');
+    } catch (e) { showToast(e?.error || 'Xatolik'); }
+    finally { setLessonSaving(null); }
+  };
+
+  const handleVideoUpload = async (lessonId, file) => {
+    setVideoUpload(p => ({ ...p, [lessonId]: { state: 'uploading', progress: 0 } }));
+    try {
+      const updated = await groupsApi.uploadLessonVideo(selected.id, lessonId, file, (pct) =>
+        setVideoUpload(p => ({ ...p, [lessonId]: { state: 'uploading', progress: pct } }))
+      );
+      setLessons(p => p.map(l => l.id === lessonId ? { ...l, video_url: updated.video_url } : l));
+      setVideoUpload(p => ({ ...p, [lessonId]: { state: 'done', progress: 100 } }));
+      showToast('Video yuklandi');
+    } catch { setVideoUpload(p => ({ ...p, [lessonId]: { state: 'error', progress: 0 } })); showToast('Video yuklashda xatolik'); }
+  };
+
+  const handleMaterialUpload = async (lessonId, file) => {
+    setMaterialUpload(p => ({ ...p, [lessonId]: { state: 'uploading', progress: 0 } }));
+    try {
+      const newMaterial = await groupsApi.uploadLessonMaterial(selected.id, lessonId, file, file.name, (pct) =>
+        setMaterialUpload(p => ({ ...p, [lessonId]: { state: 'uploading', progress: pct } }))
+      );
+      setLessons(p => p.map(l => l.id === lessonId ? { ...l, materials: [...(l.materials || []), newMaterial] } : l));
+      setMaterialUpload(p => ({ ...p, [lessonId]: { state: 'done', progress: 100 } }));
+      showToast('Material yuklandi');
+    } catch { setMaterialUpload(p => ({ ...p, [lessonId]: { state: 'error', progress: 0 } })); showToast('Material yuklashda xatolik'); }
+  };
+
+  const completeLessonHandler = async (lessonId) => {
+    if (!window.confirm('Bu darsni yakunlaysizmi? O\'quvchilar ko\'ra oladi.')) return;
+    try {
+      const updated = await groupsApi.completeLesson(selected.id, lessonId);
+      setLessons(p => p.map(l => l.id === lessonId ? { ...l, is_completed: true, completed_at: updated.completed_at } : l));
+      showToast('Dars yakunlandi — o\'quvchilar ko\'ra oladi');
+    } catch (e) { showToast(e?.error || 'Xatolik'); }
+  };
+
+  const deleteLessonHandler = async (lessonId) => {
+    if (!window.confirm('Bu darsni o\'chirmoqchimisiz?')) return;
+    try {
+      await groupsApi.removeLesson(selected.id, lessonId);
+      setLessons(p => p.filter(l => l.id !== lessonId));
+      if (expandedLesson === lessonId) setExpandedLesson(null);
+      showToast('Dars o\'chirildi');
+    } catch (e) { showToast(e?.error || 'Xatolik'); }
+  };
+
   const handleSaveSchedule = async () => {
     if (!selected) return;
     setSchedSaving(true);
@@ -260,9 +374,12 @@ export default function TeacherGroups() {
       </div>
 
       <div className="tabs" style={{ marginBottom: 14 }}>
-        {['students', 'attendance', 'grades', 'schedule'].map((k) => (
+        {['students', 'attendance', 'grades', 'schedule', 'lessons'].map((k) => (
           <button key={k} className={`tab${detailTab === k ? ' active' : ''}`} onClick={() => setDetailTab(k)}>
-            {t(`groups.${k}Tab`)}
+            {k === 'lessons' ? '📚 Darslar' : t(`groups.${k}Tab`)}
+            {k === 'lessons' && lessons.length > 0 && (
+              <span style={{ marginLeft: 4, fontSize: 10, background: 'var(--navy)', color: '#fff', borderRadius: 10, padding: '1px 5px' }}>{lessons.length}</span>
+            )}
           </button>
         ))}
       </div>
@@ -448,6 +565,197 @@ export default function TeacherGroups() {
           </div>
         </div>
       )}
+
+      {detailTab === 'lessons' && (
+        <div>
+          {/* Header buttons */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            <button className="btn btn-navy" onClick={openCurriculumModal}>📚 Kurs reja qo'llash</button>
+            <button className="btn btn-ghost" onClick={() => setAddLessonModal(true)}>+ Dars qo'shish</button>
+          </div>
+
+          {lessonsLoading ? <SkeletonCard rows={4} /> : lessons.length === 0 ? (
+            <div className="card" style={{ textAlign: 'center', padding: 40, color: 'var(--hint)' }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>📚</div>
+              <div style={{ marginBottom: 16 }}>Darslar yo'q. Kurs reja qo'llang yoki qo'lda dars qo'shing.</div>
+              <button className="btn btn-navy" onClick={openCurriculumModal}>📚 Kurs reja qo'llash</button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {lessons.map((lesson, idx) => {
+                const isOpen = expandedLesson === lesson.id;
+                const edits = lessonEdits[lesson.id] || { title: lesson.title, description: lesson.description || '', extraTasks: lesson.extra_tasks || '' };
+                const vup = videoUpload[lesson.id];
+                const mup = materialUpload[lesson.id];
+                return (
+                  <div key={lesson.id} className="card" style={{ padding: 0 }}>
+                    {/* Lesson header */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer' }}
+                      onClick={() => {
+                        setExpandedLesson(isOpen ? null : lesson.id);
+                        if (!isOpen && !lessonEdits[lesson.id]) {
+                          setLessonEdits(p => ({ ...p, [lesson.id]: { title: lesson.title, description: lesson.description || '', extraTasks: lesson.extra_tasks || '' } }));
+                        }
+                      }}
+                    >
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)', flexShrink: 0 }}>#{idx + 1}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14 }}>{lesson.title}</div>
+                        {lesson.description && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{lesson.description}</div>}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {lesson.video_url && <span style={{ fontSize: 10, color: 'var(--navy)' }}>🎬</span>}
+                        {lesson.materials?.length > 0 && <span style={{ fontSize: 10, color: 'var(--navy)' }}>📎 {lesson.materials.length}</span>}
+                        <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, fontWeight: 600, background: lesson.is_completed ? '#ECFDF3' : 'var(--bg)', color: lesson.is_completed ? '#027A48' : 'var(--muted)' }}>
+                          {lesson.is_completed ? '✓ Yakunlangan' : '⏱ Kutilmoqda'}
+                        </span>
+                        <span style={{ color: 'var(--muted)', fontSize: 12 }}>{isOpen ? '▲' : '▼'}</span>
+                      </div>
+                    </div>
+
+                    {/* Expanded panel */}
+                    {isOpen && (
+                      <div style={{ borderTop: '1px solid var(--line)', padding: '16px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                          <div className="fgroup" style={{ margin: 0 }}>
+                            <div className="flabel">Dars nomi</div>
+                            <input className="finput" value={edits.title}
+                              onChange={e => setLessonEdits(p => ({ ...p, [lesson.id]: { ...edits, title: e.target.value } }))} />
+                          </div>
+                          <div className="fgroup" style={{ margin: 0 }}>
+                            <div className="flabel">Ta'rif</div>
+                            <input className="finput" value={edits.description}
+                              onChange={e => setLessonEdits(p => ({ ...p, [lesson.id]: { ...edits, description: e.target.value } }))} />
+                          </div>
+                        </div>
+
+                        {/* Video section */}
+                        <div style={{ marginBottom: 12 }}>
+                          <div className="flabel" style={{ marginBottom: 6 }}>Dars videosi</div>
+                          {lesson.video_url ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--bg)', borderRadius: 8, fontSize: 12 }}>
+                              <span>🎬</span>
+                              <a href={lesson.video_url} target="_blank" rel="noreferrer" style={{ flex: 1, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Video yuklangan</a>
+                              <button className="btn btn-sm btn-ghost" onClick={() => { videoInputRefs.current[lesson.id]?.click(); }}>Almashtirish</button>
+                            </div>
+                          ) : (
+                            <div style={{ border: '2px dashed var(--line-2)', borderRadius: 10, padding: '18px 16px', textAlign: 'center', cursor: 'pointer', fontSize: 12, color: 'var(--muted)' }}
+                              onClick={() => videoInputRefs.current[lesson.id]?.click()}>
+                              🎬 Video yuklash uchun bosing (max 500MB)
+                            </div>
+                          )}
+                          {vup && vup.state === 'uploading' && (
+                            <div style={{ marginTop: 6 }}>
+                              <div style={{ height: 4, background: 'var(--line)', borderRadius: 4, overflow: 'hidden' }}>
+                                <div style={{ width: `${vup.progress}%`, height: '100%', background: 'var(--navy)', transition: 'width .3s' }} />
+                              </div>
+                              <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>{vup.progress}% yuklanyapti...</div>
+                            </div>
+                          )}
+                          <input type="file" accept="video/*" style={{ display: 'none' }}
+                            ref={el => videoInputRefs.current[lesson.id] = el}
+                            onChange={e => { const f = e.target.files?.[0]; if (f) handleVideoUpload(lesson.id, f); e.target.value = ''; }} />
+                        </div>
+
+                        {/* Materials section */}
+                        <div style={{ marginBottom: 12 }}>
+                          <div className="flabel" style={{ marginBottom: 6 }}>Materiallar (kitob, PDF)</div>
+                          {(lesson.materials || []).map((m, mi) => (
+                            <div key={mi} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: 'var(--bg)', borderRadius: 7, marginBottom: 4, fontSize: 12 }}>
+                              <span>📎</span>
+                              <a href={m.file_url} target="_blank" rel="noreferrer" style={{ flex: 1, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</a>
+                              <span style={{ fontSize: 10, color: 'var(--muted)' }}>{m.file_type?.split('/')[1] || m.file_type}</span>
+                            </div>
+                          ))}
+                          <button className="btn btn-sm btn-ghost" style={{ marginTop: 4 }} onClick={() => materialInputRefs.current[lesson.id]?.click()}>
+                            + Material yuklash
+                          </button>
+                          {mup && mup.state === 'uploading' && (
+                            <div style={{ marginTop: 6 }}>
+                              <div style={{ height: 4, background: 'var(--line)', borderRadius: 4, overflow: 'hidden' }}>
+                                <div style={{ width: `${mup.progress}%`, height: '100%', background: 'var(--green)', transition: 'width .3s' }} />
+                              </div>
+                              <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>{mup.progress}% yuklanyapti...</div>
+                            </div>
+                          )}
+                          <input type="file" style={{ display: 'none' }}
+                            ref={el => materialInputRefs.current[lesson.id] = el}
+                            onChange={e => { const f = e.target.files?.[0]; if (f) handleMaterialUpload(lesson.id, f); e.target.value = ''; }} />
+                        </div>
+
+                        {/* Extra tasks */}
+                        <div className="fgroup" style={{ marginBottom: 12 }}>
+                          <div className="flabel">Qo'shimcha topshiriqlar</div>
+                          <textarea className="finput" rows={3} placeholder="Bugungi topshiriqlar, eslatmalar..."
+                            value={edits.extraTasks}
+                            onChange={e => setLessonEdits(p => ({ ...p, [lesson.id]: { ...edits, extraTasks: e.target.value } }))} />
+                        </div>
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
+                          <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => deleteLessonHandler(lesson.id)}>
+                            O'chirish
+                          </button>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button className="btn btn-sm btn-ghost" disabled={lessonSaving === lesson.id} onClick={() => saveLessonEdits(lesson.id)}>
+                              {lessonSaving === lesson.id ? 'Saqlanmoqda...' : '💾 Saqlash'}
+                            </button>
+                            {!lesson.is_completed && (
+                              <button className="btn btn-sm" style={{ background: 'var(--green)', color: '#fff', fontWeight: 700 }} onClick={() => completeLessonHandler(lesson.id)}>
+                                ✓ Yakunlash
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Curriculum select modal */}
+      <Modal open={curriculumModal} onClose={() => setCurriculumModal(false)} title="Kurs reja tanlash" icon="📚">
+        {curriculumList.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 24, color: 'var(--hint)' }}>
+            Hali kurs reja yaratilmagan. Avval "Kurs reja" bo'limidan yareting.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto' }}>
+            {curriculumList.map((c) => (
+              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--bg)', borderRadius: 10, border: '.5px solid var(--line)' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{c.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{c.lesson_count} ta dars</div>
+                </div>
+                <button className="btn btn-navy btn-sm" onClick={() => applySelectedCurriculum(c.id)}>Qo'llash</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
+
+      {/* Add lesson modal */}
+      <Modal open={addLessonModal} onClose={() => setAddLessonModal(false)} title="Yangi dars qo'shish" icon="📖"
+        footer={<>
+          <button className="btn btn-ghost" onClick={() => setAddLessonModal(false)}>Bekor</button>
+          <button className="btn btn-navy" onClick={addManualLesson}>Qo'shish</button>
+        </>}
+      >
+        <div className="fgroup">
+          <div className="flabel">Dars nomi *</div>
+          <input className="finput" placeholder="Dars sarlavhasi" value={addLessonForm.title}
+            onChange={e => setAddLessonForm(p => ({ ...p, title: e.target.value }))} />
+        </div>
+        <div className="fgroup">
+          <div className="flabel">Ta'rifi</div>
+          <textarea className="finput" placeholder="Qisqacha..." value={addLessonForm.description}
+            onChange={e => setAddLessonForm(p => ({ ...p, description: e.target.value }))} rows={3} />
+        </div>
+      </Modal>
 
       {/* Add student modal */}
       <Modal open={addStudentModal} onClose={() => setAddStudentModal(false)} title="O'quvchi qo'shish" icon="👤">

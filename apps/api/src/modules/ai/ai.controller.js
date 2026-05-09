@@ -18,4 +18,25 @@ const checkHomework = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-module.exports = { generateQuiz, checkHomework };
+const chat = async (req, res, next) => {
+  try {
+    const { message, lesson_id, group_lesson_id } = req.body;
+    const result = await svc.chat({
+      userId: req.user.id,
+      message,
+      lessonId: lesson_id || null,
+      groupLessonId: group_lesson_id || null,
+    });
+    res.json(result);
+  } catch (e) { next(e); }
+};
+
+const getHistory = async (req, res, next) => {
+  try {
+    const { lesson_id } = req.query;
+    const history = await svc.getChatHistory(req.user.id, lesson_id ? parseInt(lesson_id) : null);
+    res.json(history);
+  } catch (e) { next(e); }
+};
+
+module.exports = { generateQuiz, checkHomework, chat, getHistory };

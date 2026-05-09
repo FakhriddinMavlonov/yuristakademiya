@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { chat as chatApi } from '../../api';
 import useStore from '../../store/useStore';
 
 export default function TeacherChat() {
+  const { studentId } = useParams();
   const [contacts, setContacts] = useState([]);
   const [active, setActive] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -13,7 +15,18 @@ export default function TeacherChat() {
   const { socket, showToast } = useStore();
   const { t } = useTranslation();
 
-  useEffect(() => { chatApi.contacts().then(setContacts).catch(() => {}); }, []);
+  useEffect(() => {
+    chatApi.contacts().then((data) => {
+      setContacts(data);
+      if (studentId) {
+        const contact = data.find(c => c.id == studentId);
+        if (contact) {
+          setActive(contact);
+          setMobileView('chat');
+        }
+      }
+    }).catch(() => {});
+  }, [studentId]);
 
   useEffect(() => {
     if (!active) return;

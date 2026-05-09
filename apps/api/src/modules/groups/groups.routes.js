@@ -1,6 +1,9 @@
 const router = require('express').Router();
 const ctrl = require('./groups.controller');
 const { auth, requireRole } = require('../../middleware/auth');
+const multer = require('multer');
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500 * 1024 * 1024 } });
 
 router.use(auth);
 
@@ -12,5 +15,15 @@ router.delete('/:id', requireRole('admin', 'teacher'), ctrl.remove);
 router.post('/:id/students', requireRole('admin', 'teacher'), ctrl.addStudent);
 router.delete('/:id/students/:userId', requireRole('admin', 'teacher'), ctrl.removeStudent);
 router.put('/:id/schedule', requireRole('admin', 'teacher'), ctrl.setSchedule);
+
+// Group Lessons (Darslar)
+router.get('/:id/lessons', ctrl.getGroupLessons);
+router.post('/:id/apply-curriculum', requireRole('admin', 'teacher'), ctrl.applyCurriculum);
+router.post('/:id/lessons', requireRole('admin', 'teacher'), ctrl.addGroupLesson);
+router.patch('/:id/lessons/:lid', requireRole('admin', 'teacher'), ctrl.updateGroupLesson);
+router.post('/:id/lessons/:lid/video', requireRole('admin', 'teacher'), upload.single('video'), ctrl.uploadGroupLessonVideo);
+router.post('/:id/lessons/:lid/materials', requireRole('admin', 'teacher'), upload.single('file'), ctrl.uploadGroupLessonMaterial);
+router.post('/:id/lessons/:lid/complete', requireRole('admin', 'teacher'), ctrl.completeGroupLesson);
+router.delete('/:id/lessons/:lid', requireRole('admin', 'teacher'), ctrl.removeGroupLesson);
 
 module.exports = router;

@@ -512,8 +512,182 @@ const migrate = async () => {
     // Supplementary reading links per lesson stored as [{title,url}] JSON
     await client.query(`ALTER TABLE lessons ADD COLUMN IF NOT EXISTS supplementary_links JSONB DEFAULT '[]'`);
 
+    // ─── OFFLINE MODE: Kurs reja (Curriculum) tables ───────────────────────────────────────
+
+    // Kurs reja shablonlari (shablon sifatida yaratilgan)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS curricula (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(200) NOT NULL,
+        description TEXT,
+        teacher_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    // Shablon darslar (kurs rejada tartiblangan)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS curriculum_lessons (
+        id SERIAL PRIMARY KEY,
+        curriculum_id INTEGER NOT NULL REFERENCES curricula(id) ON DELETE CASCADE,
+        order_num SMALLINT NOT NULL DEFAULT 1,
+        title VARCHAR(300) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    // Shablon topshiriq/test/vazifa (type: 'task'|'homework'|'test'|'rubric')
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS curriculum_tasks (
+        id SERIAL PRIMARY KEY,
+        curriculum_lesson_id INTEGER NOT NULL REFERENCES curriculum_lessons(id) ON DELETE CASCADE,
+        type VARCHAR(20) DEFAULT 'task',
+        title VARCHAR(300) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    // Guruh darslar (shablon yoki qo'lda yaratilgan)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS group_lessons (
+        id SERIAL PRIMARY KEY,
+        group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+        curriculum_lesson_id INTEGER REFERENCES curriculum_lessons(id) ON DELETE SET NULL,
+        order_num SMALLINT NOT NULL DEFAULT 1,
+        title VARCHAR(300) NOT NULL,
+        description TEXT,
+        video_url TEXT,
+        video_guid VARCHAR(200),
+        extra_tasks TEXT,
+        is_completed BOOLEAN DEFAULT false,
+        completed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    // Guruh dars materiallari (kitoblar, PDF-lar, hujjatlar)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS group_lesson_materials (
+        id SERIAL PRIMARY KEY,
+        group_lesson_id INTEGER NOT NULL REFERENCES group_lessons(id) ON DELETE CASCADE,
+        name VARCHAR(300) NOT NULL,
+        file_url TEXT NOT NULL,
+        file_type VARCHAR(50),
+        file_size_bytes BIGINT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    // Gamification — XP va streak
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_points (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        total_xp INTEGER DEFAULT 0,
+        current_level INTEGER DEFAULT 1,
+        daily_streak INTEGER DEFAULT 0,
+        longest_streak INTEGER DEFAULT 0,
+        last_active_date DATE,
+        streak_freeze_count INTEGER DEFAULT 0,
+        UNIQUE(user_id)
+      )
+    `);
+
+    // Gamification — badges/achievements
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_achievements (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        badge_key VARCHAR(60) NOT NULL,
+        earned_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(user_id, badge_key)
+      )
+    `);
+
+    // Spaced Repetition — flashcard decks
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS flashcard_decks (
+        id SERIAL PRIMARY KEY,
+        lesson_id INTEGER REFERENCES lessons(id) ON DELETE SET NULL,
+        group_lesson_id INTEGER REFERENCES group_lessons(id) ON DELETE SET NULL,
+        teacher_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(200) NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    // Spaced Repetition — flashcards (savol-javob kartalari)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS flashcards (
+        id SERIAL PRIMARY KEY,
+        deck_id INTEGER NOT NULL REFERENCES flashcard_decks(id) ON DELETE CASCADE,
+        front TEXT NOT NULL,
+        back TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    // Spaced Repetition — user review history (SM-2 algoritm)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS flashcard_reviews (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        flashcard_id INTEGER NOT NULL REFERENCES flashcards(id) ON DELETE CASCADE,
+        ease_factor REAL DEFAULT 2.5,
+        interval_days INTEGER DEFAULT 1,
+        repetition_count INTEGER DEFAULT 0,
+        next_review_date DATE DEFAULT CURRENT_DATE,
+        last_reviewed_at TIMESTAMPTZ,
+        UNIQUE(user_id, flashcard_id)
+      )
+    `);
+
+    // Parent Portal — ota-ona va talaba bog'lanish
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS parent_links (
+        id SERIAL PRIMARY KEY,
+        parent_phone VARCHAR(20) NOT NULL,
+        parent_name VARCHAR(120),
+        student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        verified_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(parent_phone, student_id)
+      )
+    `);
+
+    // AI Tutor — conversation history
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ai_conversations (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        lesson_id INTEGER REFERENCES lessons(id) ON DELETE SET NULL,
+        group_lesson_id INTEGER REFERENCES group_lessons(id) ON DELETE SET NULL,
+        messages JSONB DEFAULT '[]',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    // Indices for new curriculum/lesson tables
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_curricula_teacher ON curricula(teacher_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_curriculum_lessons_curriculum ON curriculum_lessons(curriculum_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_curriculum_tasks_lesson ON curriculum_tasks(curriculum_lesson_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_group_lessons_group ON group_lessons(group_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_group_lessons_curriculum_lesson ON group_lessons(curriculum_lesson_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_group_lesson_materials_lesson ON group_lesson_materials(group_lesson_id)`);
+
+    // Indices for Sprint 1 tables
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_user_points_user ON user_points(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_user_achievements_user ON user_achievements(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_flashcard_reviews_user_next ON flashcard_reviews(user_id, next_review_date)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_flashcard_reviews_card ON flashcard_reviews(flashcard_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_parent_links_student ON parent_links(student_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_ai_conversations_user ON ai_conversations(user_id)`);
+
     await client.query('COMMIT');
-    console.log('✅ Migration completed — 31 tables created');
+    console.log('✅ Migration completed — 38 tables created (Sprint 1: 7 new)');
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('❌ Migration failed:', err.message);

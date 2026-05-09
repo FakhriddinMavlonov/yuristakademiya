@@ -185,4 +185,196 @@ const setSchedule = async (groupId, slots) => {
   return rows;
 };
 
-module.exports = { list, getDetail, create, update, remove, addStudent, removeStudent, setSchedule };
+const getGroupLessons = async (groupId, role, userId) => {
+  let where = `WHERE gl.group_id = $1`;
+  if (role === 'student') {
+    where += ` AND gl.is_completed = true`;
+  }
+  const { rows } = await query(`
+    SELECT gl.*,
+      COUNT(glm.id)::int AS material_count
+    FROM group_lessons gl
+    LEFT JOIN group_lesson_materials glm ON glm.group_lesson_id = gl.id
+    ${where}
+    GROUP BY gl.id
+    ORDER BY gl.order_num
+  `, [groupId]);
+
+  for (const lesson of rows) {
+    const { rows: materials } = await query(`
+      SELECT * FROM group_lesson_materials WHERE group_lesson_id = $1 ORDER BY created_at
+    `, [lesson.id]);
+    lesson.materials = materials;
+  }
+
+  return rows;
+};
+
+const applyCurriculum = async (groupId, curriculumId, teacherId) => {
+  const { rows: [group] } = await query(`
+    SELECT id FROM groups WHERE id = $1 AND teacher_id = $2
+  `, [groupId, teacherId]);
+  if (!group) throw new AppError('Guruh topilmadi yoki ruxsatga ega emasiz', 403);
+
+  const { rows: lessons } = await query(`
+    SELECT * FROM curriculum_lessons WHERE curriculum_id = $1 ORDER BY order_num
+  `, [curriculumId]);
+  if (lessons.length === 0) return [];
+
+  const { rows: [maxOrder] } = await query(`
+    SELECT COALESCE(MAX(order_num), 0) AS max_order FROM group_lessons WHERE group_id = $1
+  `, [groupId]);
+
+  const newLessons = [];
+  for (let i = 0; i < lessons.length; i++) {
+    const cl = lessons[i];
+    const { rows: [newLesson] } = await query(`
+      INSERT INTO group_lessons (group_id, curriculum_lesson_id, order_num, title, description)
+      VALUES ($1, $2, $3, $4, $5) RETURNING *
+    `, [groupId, cl.id, maxOrder.max_order + i + 1, cl.title, cl.description]);
+    newLessons.push(newLesson);
+  }
+
+  return newLessons;
+};
+
+const addGroupLesson = async (groupId, data, teacherId) => {
+  const { rows: [group] } = await query(`
+    SELECT id FROM groups WHERE id = $1 AND teacher_id = $2
+  `, [groupId, teacherId]);
+  if (!group) throw new AppError('Guruh topilmadi yoki ruxsatga ega emasiz', 403);
+
+  const { rows: [maxOrder] } = await query(`
+    SELECT COALESCE(MAX(order_num), 0) + 1 AS next_order FROM group_lessons WHERE group_id = $1
+  `, [groupId]);
+
+  const { rows: [lesson] } = await query(`
+    INSERT INTO group_lessons (group_id, order_num, title, description)
+    VALUES ($1, $2, $3, $4) RETURNING *
+  `, [groupId, maxOrder.next_order, data.title, data.description || null]);
+  return lesson;
+};
+
+const updateGroupLesson = async (lessonId, data, teacherId) => {
+  const { rows: [group] } = await query(`
+    SELECT g.id FROM groups g
+    JOIN group_lessons gl ON gl.group_id = g.id
+    WHERE gl.id = $1 AND g.teacher_id = $2
+  `, [lessonId, teacherId]);
+  if (!group) throw new AppError('Dars topilmadi yoki ruxsatga ega emasiz', 403);
+
+  const { rows: [lesson] } = await query(`
+    UPDATE group_lessons
+    SET title = COALESCE($1, title),
+        description = COALESCE($2, description),
+        extra_tasks = COALESCE($3, extra_tasks)
+    WHERE id = $4 RETURNING *
+  `, [data.title ?? null, data.description ?? null, data.extraTasks ?? null, lessonId]);
+  return lesson;
+};
+
+const uploadGroupLessonVideo = async (lessonId, fileBuffer, teacherId) => {
+  const { rows: [group] } = await query(`
+    SELECT g.id FROM groups g
+    JOIN group_lessons gl ON gl.group_id = g.id
+    WHERE gl.id = $1 AND g.teacher_id = $2
+  `, [lessonId, teacherId]);
+  if (!group) throw new AppError('Dars topilmadi yoki ruxsatga ega emasiz', 403);
+
+  const axios = require('axios');
+  const guid = `lesson_${lessonId}_${Date.now()}`;
+  const videoUrl = `https://${process.env.BUNNY_HOSTNAME}/${process.env.BUNNY_STORAGE_ZONE}/videos/${guid}.mp4`;
+
+  await axios.put(videoUrl, fileBuffer, {
+    headers: { AccessKey: process.env.BUNNY_API_KEY },
+  });
+
+  const { rows: [lesson] } = await query(`
+    UPDATE group_lessons SET video_url = $1, video_guid = $2 WHERE id = $3 RETURNING *
+  `, [videoUrl, guid, lessonId]);
+  return lesson;
+};
+
+const addGroupLessonMaterial = async (lessonId, fileBuffer, name, fileType, fileSize, teacherId) => {
+  const { rows: [group] } = await query(`
+    SELECT g.id FROM groups g
+    JOIN group_lessons gl ON gl.group_id = g.id
+    WHERE gl.id = $1 AND g.teacher_id = $2
+  `, [lessonId, teacherId]);
+  if (!group) throw new AppError('Dars topilmadi yoki ruxsatga ega emasiz', 403);
+
+  const axios = require('axios');
+  const guid = `material_${lessonId}_${Date.now()}`;
+  const fileUrl = `https://${process.env.BUNNY_HOSTNAME}/${process.env.BUNNY_STORAGE_ZONE}/materials/${guid}`;
+
+  await axios.put(fileUrl, fileBuffer, {
+    headers: { AccessKey: process.env.BUNNY_API_KEY },
+  });
+
+  const { rows: [material] } = await query(`
+    INSERT INTO group_lesson_materials (group_lesson_id, name, file_url, file_type, file_size_bytes)
+    VALUES ($1, $2, $3, $4, $5) RETURNING *
+  `, [lessonId, name, fileUrl, fileType, fileSize]);
+  return material;
+};
+
+const completeGroupLesson = async (lessonId, teacherId) => {
+  const { rows: [group] } = await query(`
+    SELECT g.id FROM groups g
+    JOIN group_lessons gl ON gl.group_id = g.id
+    WHERE gl.id = $1 AND g.teacher_id = $2
+  `, [lessonId, teacherId]);
+  if (!group) throw new AppError('Dars topilmadi yoki ruxsatga ega emasiz', 403);
+
+  const { rows: [lesson] } = await query(`
+    UPDATE group_lessons SET is_completed = true, completed_at = NOW() WHERE id = $1 RETURNING *
+  `, [lessonId]);
+  return lesson;
+};
+
+const removeGroupLesson = async (lessonId, teacherId) => {
+  const { rows: [group] } = await query(`
+    SELECT g.id FROM groups g
+    JOIN group_lessons gl ON gl.group_id = g.id
+    WHERE gl.id = $1 AND g.teacher_id = $2
+  `, [lessonId, teacherId]);
+  if (!group) throw new AppError('Dars topilmadi yoki ruxsatga ega emasiz', 403);
+
+  const { rows: [lesson] } = await query(`
+    SELECT video_guid FROM group_lessons WHERE id = $1
+  `, [lessonId]);
+
+  if (lesson?.video_guid) {
+    try {
+      const axios = require('axios');
+      const videoUrl = `https://${process.env.BUNNY_HOSTNAME}/${process.env.BUNNY_STORAGE_ZONE}/videos/${lesson.video_guid}.mp4`;
+      await axios.delete(videoUrl, {
+        headers: { AccessKey: process.env.BUNNY_API_KEY },
+      });
+    } catch (e) {
+      console.error('[groups] Failed to delete video from BunnyCDN:', e.message);
+    }
+  }
+
+  await query(`DELETE FROM group_lessons WHERE id = $1`, [lessonId]);
+  return { deleted: true };
+};
+
+module.exports = {
+  list,
+  getDetail,
+  create,
+  update,
+  remove,
+  addStudent,
+  removeStudent,
+  setSchedule,
+  getGroupLessons,
+  applyCurriculum,
+  addGroupLesson,
+  updateGroupLesson,
+  uploadGroupLessonVideo,
+  addGroupLessonMaterial,
+  completeGroupLesson,
+  removeGroupLesson,
+};

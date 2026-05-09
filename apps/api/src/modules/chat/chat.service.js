@@ -11,7 +11,16 @@ const getContacts = async (userId, role) => {
       FROM users u
       JOIN enrollments e ON e.user_id = u.id
       JOIN courses c ON c.id = e.course_id AND c.teacher_id = $1
-      ORDER BY unread_count DESC, u.first_name
+
+      UNION
+
+      SELECT u.id, u.first_name, u.last_name, u.role,
+        (SELECT content FROM messages WHERE (sender_id=u.id AND receiver_id=$1) OR (sender_id=$1 AND receiver_id=u.id) ORDER BY created_at DESC LIMIT 1) AS last_message,
+        (SELECT COUNT(*)::int FROM messages WHERE sender_id=u.id AND receiver_id=$1 AND is_read=false) AS unread_count
+      FROM users u
+      WHERE u.created_by = $1 AND u.role = 'student'
+
+      ORDER BY unread_count DESC, first_name
     `, [userId]);
     return rows;
   }

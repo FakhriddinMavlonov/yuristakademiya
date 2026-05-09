@@ -93,11 +93,37 @@ const IconClipboard = () => (
   </svg>
 );
 
+const IconLayers = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 20 7 20 17 12 22 4 17 4 7 12 2"/>
+    <polyline points="12 12 20 7"/>
+    <polyline points="12 12 12 22"/>
+    <polyline points="12 12 4 7"/>
+  </svg>
+);
+
+const IconTrophy = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 9H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-2m-4-3V5a2 2 0 0 0-2-2h0a2 2 0 0 0-2 2v1m4 3a7 7 0 0 0 5 6.95"/>
+  </svg>
+);
+
+const IconBarChart = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="20" x2="12" y2="10"/>
+    <line x1="18" y1="20" x2="18" y2="4"/>
+    <line x1="6" y1="20" x2="6" y2="16"/>
+  </svg>
+);
+
 const ICON_MAP = {
   home: IconHome,
   group: IconGroup,
   clipboard: IconClipboard,
   book: IconBook,
+  layers: IconLayers,
+  trophy: IconTrophy,
+  'bar-chart': IconBarChart,
   users: IconUsers,
   checkSquare: IconCheckSquare,
   folder: IconFolder,
@@ -111,22 +137,31 @@ const ICON_MAP = {
 const teacherNavKeys = [
   { to: '/teacher', icon: 'home', key: 'nav.dashboard', end: true },
   { to: '/teacher/courses', icon: 'book', key: 'nav.courses' },
+  { to: '/teacher/curricula', icon: 'book', key: 'nav.curricula' },
   { to: '/teacher/students', icon: 'users', key: 'nav.myStudents' },
   { to: '/teacher/homework', icon: 'checkSquare', key: 'nav.homework', badge: 'hw' },
   { to: '/teacher/library', icon: 'folder', key: 'nav.library' },
   { to: '/teacher/meetings', icon: 'calendar', key: 'nav.meetings' },
   { to: '/teacher/exams', icon: 'clipboard', key: 'nav.exams' },
   { to: '/teacher/chat', icon: 'message', key: 'nav.chat', badge: 'msg' },
+  { to: '/teacher/flashcards', icon: 'layers', key: 'nav.flashcards' },
+  { to: '/teacher/analytics', icon: 'bar-chart', key: 'nav.analytics' },
   { to: '/teacher/groups', icon: 'group', key: 'nav.groups' },
 ];
 
 const studentNavKeys = [
   { to: '/student', icon: 'home', key: 'nav.dashboard', end: true },
   { to: '/student/courses', icon: 'book', key: 'nav.courses' },
+  { to: '/student/flashcards', icon: 'layers', key: 'nav.flashcards' },
+  { to: '/student/gamification', icon: 'trophy', key: 'nav.gamification' },
   { to: '/student/meetings', icon: 'video', key: 'nav.meetings' },
   { to: '/student/exams', icon: 'clipboard', key: 'nav.exams' },
   { to: '/student/chat', icon: 'message', key: 'nav.askTeacher', badge: 'msg' },
   { to: '/student/schedule', icon: 'calendar', key: 'nav.schedule' },
+];
+
+const parentNavKeys = [
+  { to: '/parent/dashboard', icon: 'home', key: 'nav.dashboard', end: true },
 ];
 
 const adminNavKeys = [
@@ -143,10 +178,11 @@ export default function Sidebar({ role, open, onClose }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const baseNavKeys = role === 'admin' ? adminNavKeys : role === 'teacher' ? teacherNavKeys : studentNavKeys;
+  const baseNavKeys = role === 'admin' ? adminNavKeys : role === 'teacher' ? teacherNavKeys : role === 'parent' ? parentNavKeys : studentNavKeys;
   const navKeys = role === 'teacher'
     ? baseNavKeys.filter((item) => {
         if (mode === 'online' && item.to === '/teacher/groups') return false;
+        if (mode === 'online' && item.to === '/teacher/curricula') return false;
         if (mode === 'offline' && item.to === '/teacher/courses') return false;
         if (mode === 'offline' && item.to === '/teacher/meetings') return false;
         return true;

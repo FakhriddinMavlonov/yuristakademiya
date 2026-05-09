@@ -119,6 +119,7 @@ function OnlineStudents() {
 
 // ─── OFFLINE: teacher's own registered students ───────────────────────────────
 function OfflineStudents() {
+  const navigate = useNavigate();
   const { showToast } = useStore();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -190,35 +191,38 @@ function OfflineStudents() {
           <button className="btn btn-navy" onClick={() => setModal(true)}>+ O'quvchi qo'shish</button>
         </div>
       ) : (
-        <div className="card">
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>Ism Familiya</th>
-                <th>Telefon</th>
-                <th>Qo'shimcha tel.</th>
-                <th style={{ textAlign: 'center' }}>Holat</th>
-                <th>Ro'yxatdan o'tgan</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((s) => (
-                <tr key={s.id}>
-                  <td style={{ fontWeight: 600 }}>{s.first_name} {s.last_name}</td>
-                  <td style={{ fontSize: 12, color: 'var(--muted)' }}>{s.phone}</td>
-                  <td style={{ fontSize: 12, color: 'var(--muted)' }}>{s.second_phone || '—'}</td>
-                  <td style={{ textAlign: 'center' }}>
-                    <span className={`pill ${s.is_active ? 'pill-green' : 'pill-red'}`} style={{ fontSize: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+          {filtered.map((s, i) => {
+            const [bg, tc] = COLORS[i % COLORS.length];
+            return (
+              <div key={s.id} className="card" style={{ cursor: 'pointer', transition: 'transform .15s', padding: 0 }}
+                onClick={() => navigate(`/teacher/students/${s.id}`)}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 8 }}>
+                  <div style={{ width: 52, height: 52, background: bg, color: tc, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700 }}>
+                    {s.first_name?.[0]}{s.last_name?.[0]}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{s.first_name} {s.last_name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{s.phone}</div>
+                  </div>
+                  {s.second_phone && (
+                    <div style={{ fontSize: 10, color: 'var(--muted)' }}>{s.second_phone}</div>
+                  )}
+                  <div style={{ display: 'flex', gap: 6, fontSize: 11, alignItems: 'center' }}>
+                    <span className={`pill ${s.is_active ? 'pill-green' : 'pill-red'}`} style={{ fontSize: 9 }}>
                       {s.is_active ? 'Faol' : 'Bloklangan'}
                     </span>
-                  </td>
-                  <td style={{ fontSize: 11, color: 'var(--muted)' }}>
-                    {new Date(s.created_at).toLocaleDateString('uz')}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <span style={{ color: 'var(--muted)', fontSize: 9 }}>
+                      {new Date(s.created_at).toLocaleDateString('uz')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
