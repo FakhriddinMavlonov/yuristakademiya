@@ -7,7 +7,7 @@ async function getStudentAnalytics(studentId, teacherId = null) {
 
   if (teacherId) {
     const enrollmentRes = await query(
-      'SELECT COUNT(*) as cnt FROM enrollments WHERE student_id = $1 AND (course_id IN (SELECT id FROM courses WHERE teacher_id = $2))',
+      'SELECT COUNT(*) as cnt FROM enrollments WHERE user_id = $1 AND (course_id IN (SELECT id FROM courses WHERE teacher_id = $2))',
       [studentId, teacherId]
     );
     if (enrollmentRes.rows[0].cnt === 0) throw new AppError('Unauthorized', 403);
@@ -69,7 +69,7 @@ async function getStudentAnalytics(studentId, teacherId = null) {
 
   // Daily grades
   const gradesRes = await query(`
-    SELECT AVG(grade) as avg_grade FROM daily_grades WHERE user_id = $1 AND created_at >= $2
+    SELECT AVG(score) as avg_grade FROM daily_grades WHERE user_id = $1 AND created_at >= $2
   `, [studentId, fourWeeksAgo]);
 
   const avgGrade = parseFloat(gradesRes.rows[0]?.avg_grade || 0).toFixed(2);
@@ -104,7 +104,7 @@ async function getTeacherAnalytics(teacherId) {
       g.id,
       g.name,
       COUNT(DISTINCT gs.user_id) as student_count,
-      AVG(dg.grade) as avg_grade,
+      AVG(dg.score) as avg_grade,
       COUNT(DISTINCT CASE WHEN a.status = 'present' THEN a.user_id END)::float / NULLIF(COUNT(DISTINCT a.user_id), 0) as attendance_rate
     FROM groups g
     LEFT JOIN group_students gs ON g.id = gs.group_id

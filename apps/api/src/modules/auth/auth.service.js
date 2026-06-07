@@ -12,10 +12,10 @@ const ACCESS_SECRET = () => process.env.JWT_SECRET;
 const REFRESH_SECRET = () => process.env.JWT_SECRET + '_refresh';
 
 const signAccessToken = (user) =>
-  jwt.sign({ id: user.id, role: user.role }, ACCESS_SECRET(), { expiresIn: '365d' });
+  jwt.sign({ id: user.id, role: user.role }, ACCESS_SECRET(), { expiresIn: '15m' });
 
 const signRefreshToken = (user) =>
-  jwt.sign({ id: user.id, role: user.role, type: 'refresh' }, REFRESH_SECRET(), { expiresIn: '730d' });
+  jwt.sign({ id: user.id, role: user.role, type: 'refresh' }, REFRESH_SECRET(), { expiresIn: '7d' });
 
 const normalizePhone = (phone) => {
   const digits = phone.replace(/\D/g, '');
@@ -28,7 +28,11 @@ const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString()
 
 const register = async ({ firstName, lastName, phone, password }) => {
   if (!phone || !password || !firstName || !lastName) throw new AppError('Barcha maydonlarni to\'ldiring', 400);
-  if (password.length < 6) throw new AppError('Parol kamida 6 ta belgidan iborat bo\'lishi kerak', 400);
+  // Password: min 8 chars, must have uppercase, lowercase, digit, and special char
+  if (password.length < 8) throw new AppError('Parol kamida 8 ta belgidan iborat bo\'lishi kerak', 400);
+  if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(password)) {
+    throw new AppError('Parolda kamida bitta katta harf, kichik harf, raqam va maxsus belgi bo\'lishi kerak', 400);
+  }
   const normalizedPhone = normalizePhone(phone);
   const exists = await query('SELECT id FROM users WHERE phone=$1', [normalizedPhone]);
   if (exists.rows[0]) throw new AppError('Bu telefon raqam allaqachon ro\'yxatdan o\'tgan', 409);

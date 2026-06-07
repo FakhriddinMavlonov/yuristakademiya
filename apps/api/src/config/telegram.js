@@ -12,10 +12,27 @@ const generateUsername = (firstName, lastName) => {
 };
 
 const generatePassword = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  // Strong password: includes uppercase, lowercase, digits, and special chars
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lower = 'abcdefghijklmnopqrstuvwxyz';
+  const digits = '0123456789';
+  const special = '!@#$%^&*()-_=+';
+  const all = upper + lower + digits + special;
+
+  // Ensure at least one of each type
   let pass = '';
-  for (let i = 0; i < 8; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
-  return pass;
+  pass += upper[Math.floor(Math.random() * upper.length)];
+  pass += lower[Math.floor(Math.random() * lower.length)];
+  pass += digits[Math.floor(Math.random() * digits.length)];
+  pass += special[Math.floor(Math.random() * special.length)];
+
+  // Fill remaining with random chars from all sets
+  for (let i = pass.length; i < 12; i++) {
+    pass += all.charAt(Math.floor(Math.random() * all.length));
+  }
+
+  // Shuffle to avoid predictable pattern
+  return pass.split('').sort(() => Math.random() - 0.5).join('');
 };
 
 const normalizePhone = (phone) => {
@@ -175,6 +192,12 @@ const initTelegramBot = () => {
           [newUser.id, chatId.toString()]
         );
 
+                // SECURITY: Use a magic token instead of passing credentials in the URL
+        const { signMagicToken } = require('../modules/auth/auth.service');
+        const magicToken = signMagicToken(newUser.id);
+        const webUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+        const autoLoginUrl = `${webUrl}/auto-join?token=${encodeURIComponent(magicToken)}`;
+
         const dataMsg =
           `✅ *Tabriklaymiz ${escapeMd(state.firstName)}\\!*\n\n` +
           `Ro'yxatdan o'tish muvaffaqiyatli yakunlandi\\.\n\n` +
@@ -186,13 +209,12 @@ const initTelegramBot = () => {
           `👨‍👩‍👧 Ota\\-ona Telegram: ${escapeMd(state.parentTelegramPhone)}\n\n` +
           `*Login ma'lumotlari:*\n` +
           `👤 Login: \`${username}\`\n` +
-          `🔐 Parol: \`${password}\``;
+          `🔐 Parol: \`${password}\`\n\n` +
+          `_⚠️ Parolingizni xavfsiz joyda saqlang\\. Hech kimga bermang\\._`;
         await bot.sendMessage(chatId, dataMsg, { parse_mode: 'MarkdownV2' });
 
-        const webUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-        const loginUrl = `${webUrl}/login?username=${username}&password=${password}`;
         await bot.sendMessage(chatId, '🌐 Saytga kirishni boshlang:', {
-          reply_markup: { inline_keyboard: [[{ text: '🌐 Saytga kirish', url: loginUrl }]] }
+          reply_markup: { inline_keyboard: [[{ text: '🌐 Saytga kirish', url: autoLoginUrl }]] }
         });
         return;
       }
@@ -323,6 +345,129 @@ const sendMeetingReschedule = async ({ chatId, title, oldTime, newTime, teacherN
   }
 };
 
+/**
+ * Send a formatted weekly parent report via Telegram
+ * @param {object} report - The report data from getWeeklyReport()
+ * @param {string} chatId - Telegram chat ID
+ */
+const sendParentReport = async (report, chatId) => {
+  if (!bot || !chatId) return false;
+
+  const { student, groups, online, offline, gamification } = report;
+
+  // Build rating emojis
+  const attendanceRate = parseFloat(offline.attendance.rate);
+  const avgGrade = parseFloat(offline.grades.avg);
+  const testScore = parseFloat(online.tests.avgScore);
+  const examScore = parseFloat(offline.exams.avgScore);
+
+  const getEmoji = (val, good, medium) => {
+    if (val >= good) return '🟢';
+    if (val >= medium) return '🟡';
+    return '🔴';
+  };
+
+  const attendanceEmoji = getEmoji(attendanceRate, 90, 75);
+  const gradeEmoji = getEmoji(avgGrade, 7, 5);
+  const testEmoji = getEmoji(testScore, 80, 60);
+
+  const groupNames = groups.map(g => `${g.name} (${g.shift === 'morning' ? '🌅' : g.shift === 'afternoon' ? '☀️' : '🌆'})`).join(', ') || '—';
+
+  // Stars for rating
+  let stars = '';
+  const totalScore = (attendanceRate * 0.3) + (avgGrade * 10 * 0.25) + (testScore * 0.25) + (examScore * 0.2);
+  if (totalScore >= 85) stars = '⭐⭐⭐⭐⭐';
+  else if (totalScore >= 70) stars = '⭐⭐⭐⭐';
+  else if (totalScore >= 55) stars = '⭐⭐⭐';
+  else if (totalScore >= 40) stars = '⭐⭐';
+  else stars = '⭐';
+
+  const weekDays = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
+  const today = weekDays[new Date().getDay()];
+
+  const text =
+    `📊 *${escapeMd(student.name)} — Haftalik Hisobot* ${stars}\n\n` +
+    `📅 ${escapeMd(today)}, ${new Date().toLocaleDateString('uz-UZ')}\n\n` +
+    `━━━━━━━━━━━━━━━━\n\n` +
+
+    `🏫 *Guruh:* ${escapeMd(groupNames)}\n\n` +
+
+    `━━━ 📚 ONLINE ━━━\n` +
+    `${online.lessons.completed > 0
+      ? `✅ Dars bajarilgan: *${online.lessons.completed}* ta / Jami: *${online.lessons.total}* ta\n📺 Ko'rilgan: *${online.lessons.watchedMinutes}* daqiqa\n`
+      : '📺 Bu hafta dars ko\'rilmadi\n'}` +
+    `${online.tests.attempts > 0
+      ? `📝 Test: *${online.tests.attempts}* ta / O'rtacha: *${online.tests.avgScore}%* ${testEmoji}\n`
+      : ''}` +
+    `${online.assignments.submitted > 0
+      ? `✍️ Topshiriqlar: *${online.assignments.submitted}* ta topshirilgan\n`
+      : ''}` +
+    `\n` +
+
+    `━━━ 🏫 OFFLINE ━━━\n` +
+    `${offline.attendance.total > 0
+      ? `📋 Davomat: *${offline.attendance.present}/${offline.attendance.total}* (${offline.attendance.rate}%) ${attendanceEmoji}\n` +
+        (offline.attendance.absent > 0 ? `❌ Qoldirgan: *${offline.attendance.absent}* ta\n` : '') +
+        (offline.attendance.excused > 0 ? `💊 Uzrli: *${offline.attendance.excused}* ta\n` : '')
+      : '📋 Bu hafta dars qaydi yo\'q\n'}` +
+    `${offline.grades.count > 0
+      ? `📝 Baholar: *${offline.grades.count}* ta / O'rtacha: *${offline.grades.avg}* ${gradeEmoji}\n`
+      : ''}` +
+    `${offline.exams.count > 0
+      ? `🎯 Imtihon: *${offline.exams.count}* ta / O'rtacha: *${offline.exams.avgScore}%*\n`
+      : ''}` +
+    `\n` +
+
+    `━━━ 🏆 YUTUQLAR ━━━\n` +
+    `⭐ XP: *${gamification.xp || 0}* ball\n` +
+    `📊 Level: *${gamification.level || 1}*\n` +
+    `🔥 Streak: *${gamification.streak || 0}* kun\n\n` +
+
+    `━━━━━━━━━━━━━━━━\n` +
+    `_⚖️ Yurist Akademiya — Sifatli ta'lim_`;
+
+  try {
+    await bot.sendMessage(chatId, text, {
+      parse_mode: 'MarkdownV2',
+      disable_notification: false,
+    });
+    return true;
+  } catch (e) {
+    console.error('[telegram] sendParentReport failed:', e.message);
+    return false;
+  }
+};
+
+/**
+ * Send daily brief parent report (shorter version)
+ */
+const sendParentDailyBrief = async (report, chatId) => {
+  if (!bot || !chatId) return false;
+
+  const { student, online, offline } = report;
+  const attendanceRate = parseFloat(offline.attendance.rate) || 0;
+  const avgGrade = parseFloat(offline.grades.avg) || 0;
+
+  let mood = '😊';
+  if (attendanceRate < 50 || avgGrade < 4) mood = '😟';
+  else if (attendanceRate < 75 || avgGrade < 6) mood = '😐';
+
+  const text =
+    `${mood} *${escapeMd(student.name)}* — kunlik qisqa hisobot\n\n` +
+    `📚 Dars: ${online.lessons.completed > 0 ? `✅ ${online.lessons.watchedMinutes} daqiqa` : '❌ Yo\'q'}\n` +
+    `📝 Baho: ${offline.grades.count > 0 ? `${offline.grades.avg} ball` : '—'}\n` +
+    `📋 Davomat: ${offline.attendance.total > 0 ? `${offline.attendance.rate}%` : '—'}\n` +
+    `🎯 Test: ${online.tests.attempts > 0 ? `${online.tests.avgScore}%` : 'Yo\'q'}`;
+
+  try {
+    await bot.sendMessage(chatId, text, { parse_mode: 'MarkdownV2' });
+    return true;
+  } catch (e) {
+    console.error('[telegram] sendParentDailyBrief failed:', e.message);
+    return false;
+  }
+};
+
 // Generic message — used by chat notifications, daily reports, etc.
 const sendBotMessage = async (chatId, text, options = {}) => {
   if (!bot || !chatId) return false;
@@ -335,4 +480,4 @@ const sendBotMessage = async (chatId, text, options = {}) => {
   }
 };
 
-module.exports = { initTelegramBot, sendMeetingCall, sendMeetingReminder, sendMeetingReschedule, sendBotMessage };
+module.exports = { initTelegramBot, sendMeetingCall, sendMeetingReminder, sendMeetingReschedule, sendBotMessage, sendParentReport, sendParentDailyBrief };

@@ -2,10 +2,12 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../../../.e
 const http = require('http');
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const { initSocket } = require('./config/socket');
 const { initTelegramBot } = require('./config/telegram');
 const { startReminderScheduler } = require('./modules/meetings/meetings.scheduler');
 const { startDailyScheduler } = require('./modules/meetings/daily.scheduler');
+const { startParentReportScheduler } = require('./modules/parent/parentReport.scheduler');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const path = require('path');
@@ -20,6 +22,13 @@ if (process.env.TELEGRAM_BOT_ENABLED === 'true') {
 }
 startReminderScheduler();
 startDailyScheduler();
+startParentReportScheduler();
+
+// SECURITY HEADERS — Helmet sets CSP, HSTS, X-Content-Type-Options, X-Frame-Options, etc.
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false, // Disabled to allow inline styles used by the app
+}));
 
 // MIDDLEWARE
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));

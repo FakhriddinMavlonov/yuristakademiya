@@ -28,24 +28,8 @@ export default function Login() {
     }
   }, [user]);
 
-  useEffect(() => {
-    const username = searchParams.get('username');
-    const password = searchParams.get('password');
-    if (username && password) {
-      setTab('login');
-      handleAutoLogin(username, password);
-    }
-  }, []);
-
-  const handleAutoLogin = async (username, password) => {
-    try {
-      const { user, accessToken, refreshToken } = await authApi.login({ phoneOrEmail: username, password });
-      login(user, accessToken, refreshToken);
-      navigate(user.role === 'teacher' ? '/teacher' : user.role === 'admin' ? '/admin' : '/student');
-    } catch (err) {
-      console.error('Auto-login failed:', err);
-    }
-  };
+  // SECURITY: Removed auto-login via URL params (credentials leakage).
+  // Use magic tokens via /auto-join instead.
 
   const handleLogin = (user, accessToken, refreshToken) => {
     login(user, accessToken, refreshToken);
@@ -181,15 +165,10 @@ function LoginForm({ onSuccess }) {
           required
         />
       </div>
-      <button className="btn btn-navy" type="submit" disabled={loading}
+            <button className="btn btn-navy" type="submit" disabled={loading}
         style={{ justifyContent: 'center', padding: '10px', fontSize: 14, marginTop: 4 }}>
         {loading ? t('auth.loggingIn') : t('auth.loginBtn')}
       </button>
-
-      <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, fontSize: 11, color: 'var(--muted)' }}>
-        <strong>{t('auth.demoTeacher')}</strong><br />
-        <strong>{t('auth.demoStudent')}</strong>
-      </div>
     </form>
   );
 }

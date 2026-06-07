@@ -10,8 +10,9 @@ const errorHandler = (err, req, res, next) => {
   if (err.isOperational) {
     return res.status(err.statusCode).json({ error: err.message });
   }
-  console.error('Unexpected error:', err);
-  res.status(500).json({ error: err.message || 'Internal server error', stack: err.stack?.split('\n')[0] });
+  // Log the full error for debugging but never expose internals to client
+  console.error('Unexpected error:', err.message, err.stack);
+  res.status(500).json({ error: 'Internal server error' });
 };
 
 module.exports = { AppError, errorHandler };

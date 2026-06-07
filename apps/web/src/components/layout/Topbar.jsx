@@ -107,18 +107,17 @@ export default function Topbar({ onMenuToggle }) {
 
       {/* Language switcher */}
       <div ref={langRef} style={{ position: 'relative' }}>
-        <button
+                <button
           onClick={() => setLangOpen((v) => !v)}
           style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '5px 10px', borderRadius: 8, border: '.5px solid var(--line-2)',
+            display: 'flex', alignItems: 'center', gap: 4,
+            padding: '4px 8px', borderRadius: 8, border: '.5px solid var(--line-2)',
             background: 'var(--bg)', cursor: 'pointer', fontSize: 12,
             fontWeight: 600, color: 'var(--ink)', fontFamily: 'Instrument Sans,sans-serif',
             transition: 'all .15s',
           }}
         >
-          <span style={{ fontSize: 16 }}>{currentLang.flag}</span>
-          <span>{currentLang.code.toUpperCase()}</span>
+          <span style={{ fontSize: 20, lineHeight: 1 }}>{currentLang.flag}</span>
           <span style={{ color: 'var(--hint)', fontSize: 10 }}>▾</span>
         </button>
 
@@ -130,7 +129,7 @@ export default function Topbar({ onMenuToggle }) {
             overflow: 'hidden', zIndex: 200, minWidth: 140,
           }}>
             {LANGS.map((lang) => (
-              <button
+                            <button
                 key={lang.code}
                 onClick={() => { setLanguage(lang.code); setLangOpen(false); }}
                 style={{
@@ -146,7 +145,6 @@ export default function Topbar({ onMenuToggle }) {
                 onMouseLeave={(e) => { if (language !== lang.code) e.currentTarget.style.background = 'transparent'; }}
               >
                 <span style={{ fontSize: 18 }}>{lang.flag}</span>
-                <span>{lang.label}</span>
                 {language === lang.code && <span style={{ marginLeft: 'auto', color: 'var(--navy)' }}>✓</span>}
               </button>
             ))}

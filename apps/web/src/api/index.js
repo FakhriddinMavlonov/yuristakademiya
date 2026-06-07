@@ -302,6 +302,10 @@ export const analytics = {
 
 export const parent = {
   link:       (d)  => api.post('/parent/link', d),
-  getStats:   (id) => api.get(`/parent/students/${id}/stats`),
+  getStats:   (id, phone) => api.get(`/parent/students/${id}/stats-public?phone=${encodeURIComponent(phone)}`),
   getStudents:(ph) => api.get(`/parent/students?phone=${encodeURIComponent(ph)}`),
+  // Parent Report
+  getReport:          (studentId, phone) => api.get(`/parent/report/${studentId}?phone=${encodeURIComponent(phone)}`),
+  subscribeByPhone:   (d) => api.post('/parent/report/subscribe/phone', d),
+  getSubscription:    (phone, studentId) => api.get(`/parent/report/subscription?phone=${encodeURIComponent(phone)}&studentId=${studentId}`),
 };

@@ -2,7 +2,6 @@ const { query, transaction } = require('../../config/db');
 const { AppError } = require('../../middleware/errorHandler');
 
 const list = async (userId, role, mode = null) => {
-  const modeFilter = mode ? `AND c.mode = '${mode === 'offline' ? 'offline' : 'online'}'` : '';
   if (role === 'teacher') {
     const { rows } = await query(`
       SELECT c.*, COUNT(DISTINCT e.user_id)::int AS enrolled_count,
@@ -12,9 +11,9 @@ const list = async (userId, role, mode = null) => {
       LEFT JOIN lessons l ON l.course_id = c.id
       LEFT JOIN tests t ON t.lesson_id = l.id
       LEFT JOIN test_attempts ta ON ta.test_id = t.id AND ta.submitted_at IS NOT NULL
-      WHERE c.teacher_id = $1 ${modeFilter}
+      WHERE c.teacher_id = $1 ${mode ? 'AND c.mode = $2' : ''}
       GROUP BY c.id ORDER BY c.created_at DESC
-    `, [userId]);
+    `, mode ? [userId, mode === 'offline' ? 'offline' : 'online'] : [userId]);
     return rows;
   }
   const { rows } = await query(`
@@ -27,10 +26,10 @@ const list = async (userId, role, mode = null) => {
     LEFT JOIN enrollments e ON e.course_id = c.id AND e.user_id = $1
     LEFT JOIN lessons l ON l.course_id = c.id AND l.is_published
     LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id AND lp.user_id = $1
-    WHERE c.status = 'published' ${modeFilter}
+    WHERE c.status = 'published' ${mode ? 'AND c.mode = $2' : ''}
     GROUP BY c.id, u.first_name, u.last_name, e.enrolled_at
     ORDER BY e.enrolled_at DESC NULLS LAST, c.created_at DESC
-  `, [userId]);
+  `, mode ? [userId, mode === 'offline' ? 'offline' : 'online'] : [userId]);
   return rows;
 };
 
@@ -216,7 +215,10 @@ const registerOfflineStudent = async (teacherId, data) => {
   if (!firstName || !lastName || !phone || !password) {
     throw new AppError('Barcha maydonlarni to\'ldiring', 400);
   }
-  if (password.length < 6) throw new AppError('Parol kamida 6 ta belgidan iborat bo\'lishi kerak', 400);
+    if (password.length < 8) throw new AppError('Parol kamida 8 ta belgidan iborat bo\'lishi kerak', 400);
+  if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(password)) {
+    throw new AppError('Parolda kamida bitta katta harf, kichik harf, raqam va maxsus belgi bo\'lishi kerak', 400);
+  }
 
   const bcrypt = require('bcryptjs');
   const normalizeP = (p) => {

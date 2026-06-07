@@ -196,13 +196,8 @@ export default function App() {
           <Route path="groups" element={<AdminGroups />} />
         </Route>
 
-        <Route path="/parent" element={
-          <ProtectedRoute roles={['parent']}>
-            <Shell role="parent" />
-          </ProtectedRoute>
-        }>
-          <Route path="dashboard" element={<ParentDashboard />} />
-        </Route>
+        <Route path="/parent/dashboard" element={<ParentDashboard />} />
+        <Route path="/parent" element={<Navigate to="/parent/dashboard" replace />} />
 
         <Route path="/" element={<Navigate to={defaultPath} replace />} />
         <Route path="*" element={user ? <NotFound /> : <Navigate to="/login" replace />} />

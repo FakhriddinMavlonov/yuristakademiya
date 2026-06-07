@@ -644,6 +644,54 @@ const migrate = async () => {
       )
     `);
 
+    // ─── PARENT REPORT SETTINGS ────────────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS parent_report_settings (
+        id SERIAL PRIMARY KEY,
+        parent_phone VARCHAR(20) NOT NULL,
+        student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        telegram_chat_id VARCHAR(30),
+        is_active BOOLEAN DEFAULT true,
+        frequency VARCHAR(10) DEFAULT 'weekly' CHECK (frequency IN ('daily','weekly','monthly')),
+        last_sent_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(parent_phone, student_id)
+      )
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_parent_report_settings_phone ON parent_report_settings(parent_phone)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_parent_report_settings_chat ON parent_report_settings(telegram_chat_id)`);
+
+    // ─── PARENT REPORT LOG ─────────────────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS parent_report_log (
+        id SERIAL PRIMARY KEY,
+        parent_phone VARCHAR(20) NOT NULL,
+        student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        report_data JSONB NOT NULL DEFAULT '{}',
+        sent_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_parent_report_log_phone ON parent_report_log(parent_phone)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_parent_report_log_sent ON parent_report_log(sent_at)`);
+
+    // ─── SECURITY: Audit log table ──────────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        user_role VARCHAR(20),
+        action VARCHAR(100) NOT NULL,
+        details JSONB DEFAULT '{}',
+        ip_address VARCHAR(45),
+        user_agent TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_audit_log_user ON audit_log(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action)`);
+
     // Parent Portal — ota-ona va talaba bog'lanish
     await client.query(`
       CREATE TABLE IF NOT EXISTS parent_links (

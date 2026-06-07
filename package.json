@@ -1,7 +1,9 @@
 {
   "name": "yuristakademiya",
   "private": true,
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
     "dev:api": "npm run dev --workspace=apps/api",
@@ -11,5 +13,9 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "helmet": "^8.2.0",
+    "node-cron": "^4.2.1"
   }
 }

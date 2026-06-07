@@ -69,8 +69,8 @@ const listUsers = async (search, role) => {
 
   if (search) {
     const searchPattern = `%${search}%`;
-    query_str += ` AND (first_name ILIKE $${params.length + 1} OR last_name ILIKE $${params.length + 1} OR phone ILIKE $${params.length + 1} OR email ILIKE $${params.length + 1})`;
-    params.push(searchPattern, searchPattern, searchPattern, searchPattern);
+    params.push(searchPattern);
+    query_str += ` AND (first_name ILIKE $1 OR last_name ILIKE $1 OR phone ILIKE $1 OR email ILIKE $1)`;
   }
 
   if (role && role !== 'all') {

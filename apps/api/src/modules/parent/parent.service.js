@@ -53,12 +53,24 @@ async function getStudentStats(studentId) {
 
   // Daily grades average
   const gradesRes = await query(`
-    SELECT AVG(grade) as avg_grade, COUNT(*) as grade_count
+    SELECT AVG(score) as avg_grade, COUNT(*) as grade_count
     FROM daily_grades
     WHERE user_id = $1 AND created_at >= $2
   `, [studentId, thirtyDaysAgo]);
 
   const grades = gradesRes.rows[0];
+
+  // Lesson completion progress
+  const lessonRes = await query(`
+    SELECT
+      COUNT(*) as total_lessons,
+      SUM(CASE WHEN is_completed = true THEN 1 ELSE 0 END) as completed
+    FROM lesson_progress
+    WHERE user_id = $1
+  `, [studentId]);
+
+  const lessons = lessonRes.rows[0] || { total_lessons: 0, completed: 0 };
+  const lessonCompletionRate = lessons.total_lessons > 0 ? ((lessons.completed / lessons.total_lessons) * 100).toFixed(1) : 0;
 
   return {
     student: {
@@ -80,6 +92,11 @@ async function getStudentStats(studentId) {
     grades: {
       count: grades.grade_count || 0,
       avg_grade: grades.avg_grade ? parseFloat(grades.avg_grade).toFixed(2) : 0,
+    },
+    lessons: {
+      completed: parseInt(lessons.completed || 0, 10),
+      total: parseInt(lessons.total_lessons || 0, 10),
+      completion_rate: parseFloat(lessonCompletionRate),
     },
   };
 }
