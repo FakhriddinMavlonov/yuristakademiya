@@ -1,4 +1,4 @@
-// We need to output the complete modified file after applying the suggested edit. The suggested edit changes the `apis` array from empty to `[__dirname + '/*.docs.js']`. The original code is given. We must output the file with that change and nothing else. No explanation. Just the code.const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerJsdoc = require('swagger-jsdoc');
 const options = {
   definition: {
     openapi: '3.0.0',
