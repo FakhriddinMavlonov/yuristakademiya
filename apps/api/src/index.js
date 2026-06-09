@@ -3,12 +3,35 @@ const http = require('http');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const swaggerUi = require('swagger-ui-express');
 const { initSocket } = require('./config/socket');
 const { initTelegramBot } = require('./config/telegram');
 const { startReminderScheduler } = require('./modules/meetings/meetings.scheduler');
 const { startDailyScheduler } = require('./modules/meetings/daily.scheduler');
 const { startParentReportScheduler } = require('./modules/parent/parentReport.scheduler');
 const { errorHandler } = require('./middleware/errorHandler');
+const swaggerSpec = require('./swagger/swagger');
+
+require('./swagger/auth.docs');
+require('./swagger/courses.docs');
+require('./swagger/lessons.docs');
+require('./swagger/tests.docs');
+require('./swagger/assignments.docs');
+require('./swagger/groups.docs');
+require('./swagger/attendance.docs');
+require('./swagger/grades.docs');
+require('./swagger/ai.docs');
+require('./swagger/exams.docs');
+require('./swagger/meetings.docs');
+require('./swagger/library.docs');
+require('./swagger/chat.docs');
+require('./swagger/gamification.docs');
+require('./swagger/flashcards.docs');
+require('./swagger/parent.docs');
+require('./swagger/analytics.docs');
+require('./swagger/curricula.docs');
+require('./swagger/admin.docs');
+require('./swagger/push.docs');
 
 const path = require('path');
 
@@ -37,6 +60,22 @@ app.use(express.urlencoded({ extended: true }));
 
 // HEALTH
 app.get('/health', (_, res) => res.json({ ok: true, ts: new Date() }));
+
+// 👉 SWAGGER UI — API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Yurist Akademiya API Documentation',
+  swaggerOptions: {
+    docExpansion: 'list',
+    filter: true,
+    showRequestDuration: true,
+    tryItOutEnabled: true,
+  },
+}));
+
+// JSON formatdagi swagger spec
+app.get('/api-docs.json', (req, res) => res.json(swaggerSpec));
 
 // API ROUTES
 app.use('/api/auth', require('./modules/auth/auth.routes'));

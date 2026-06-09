@@ -4,9 +4,8 @@ const { pool } = require('../config/db');
 const migrate = async () => {
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
-
-    // 1. users
+    // ✅ Transaction wrapper olib tashlandi — PostgreSQL DDL auto-commit bo'ladi
+        // 1. users
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -734,10 +733,8 @@ const migrate = async () => {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_parent_links_student ON parent_links(student_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_ai_conversations_user ON ai_conversations(user_id)`);
 
-    await client.query('COMMIT');
     console.log('✅ Migration completed — 38 tables created (Sprint 1: 7 new)');
   } catch (err) {
-    await client.query('ROLLBACK');
     console.error('❌ Migration failed:', err.message);
     process.exit(1);
   } finally {
