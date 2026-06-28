@@ -1,10 +1,21 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+if (!process.env.DATABASE_URL) {
+  console.error('FATAL: DATABASE_URL is not set. Exiting.');
+  process.exit(1);
+}
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+  max: 10,
+});
 
 pool.on('error', (err) => {
-  console.error('PostgreSQL pool error:', err);
+  console.error('PostgreSQL pool error:', err.message);
 });
 
 const query = (text, params) => pool.query(text, params);

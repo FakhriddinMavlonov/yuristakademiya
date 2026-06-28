@@ -15,6 +15,7 @@ export default function StudentLessons() {
   const [hwDone, setHwDone] = useState(false);
   const progressTimer = useRef(null);
   const watchedRef = useRef(0);
+  const videoRef = useRef(null);
 
   useEffect(() => {
     lessonsApi.list(courseId).then((d) => {
@@ -33,16 +34,37 @@ export default function StudentLessons() {
     clearInterval(progressTimer.current);
   };
 
+  // Video haqiqiy currentTime ni o'qib progress saqlaydi (har 5 soniyada)
   const onVideoPlay = useCallback(() => {
     clearInterval(progressTimer.current);
     progressTimer.current = setInterval(() => {
-      watchedRef.current += 5;
-      lessonsApi.progress(active.id, watchedRef.current).catch(() => {});
+      const current = videoRef.current?.currentTime ?? watchedRef.current;
+      watchedRef.current = current;
+      lessonsApi.progress(active.id, Math.floor(current)).catch(() => {});
     }, 5000);
   }, [active]);
 
   const onVideoPause = useCallback(() => {
     clearInterval(progressTimer.current);
+    const current = videoRef.current?.currentTime ?? watchedRef.current;
+    watchedRef.current = current;
+    lessonsApi.progress(active.id, Math.floor(current)).catch(() => {});
+  }, [active]);
+
+  // Video tugaganda to'liq vaqtni saqlaydi
+  const onVideoEnded = useCallback(() => {
+    clearInterval(progressTimer.current);
+    const duration = videoRef.current?.duration ?? watchedRef.current;
+    lessonsApi.progress(active.id, Math.floor(duration)).catch(() => {});
+    setLessonList(prev => prev.map(l => l.id === active.id ? { ...l, is_completed: true } : l));
+    setActive(prev => ({ ...prev, is_completed: true }));
+  }, [active]);
+
+  // Video yuklanganda oxirgi ko'rilgan joydan davom ettiradi (resume)
+  const onVideoLoadedMetadata = useCallback(() => {
+    if (videoRef.current && watchedRef.current > 0) {
+      videoRef.current.currentTime = watchedRef.current;
+    }
   }, []);
 
   useEffect(() => () => clearInterval(progressTimer.current), []);
@@ -131,11 +153,14 @@ export default function StudentLessons() {
               {active.video_url ? (
                 <div style={{ background: '#000', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '0 0 var(--r-md) var(--r-md)', overflow: 'hidden', maxHeight: '85vh', aspectRatio: 'auto' }}>
                   <video
+                    ref={videoRef}
                     src={active.video_url}
                     style={{ maxWidth: '100%', maxHeight: '85vh', width: 'auto', height: 'auto', display: 'block' }}
                     controls
                     onPlay={onVideoPlay}
                     onPause={onVideoPause}
+                    onEnded={onVideoEnded}
+                    onLoadedMetadata={onVideoLoadedMetadata}
                     title={active.title}
                   />
                 </div>

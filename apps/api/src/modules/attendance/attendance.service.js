@@ -1,5 +1,6 @@
 const { query } = require('../../config/db');
 const { AppError } = require('../../middleware/errorHandler');
+const { sendBotMessage } = require('../../config/telegram');
 
 const getForDate = async (groupId, date, userId, role) => {
   const { rows: [group] } = await query('SELECT * FROM groups WHERE id=$1', [groupId]);
@@ -31,6 +32,11 @@ const markBulk = async (groupId, date, records, userId, role) => {
       ON CONFLICT (group_id, user_id, date) DO UPDATE SET
         status = $4, note = $5, marked_by = $6
     `, [groupId, r.userId, date, r.status, r.note || null, userId]);
+
+    // 3+ qoldirish bo'lsa ota-onaga ogohlantirish yuborish
+    if (r.status === 'absent') {
+      notifyParentIfAbsenceThreshold(r.userId, groupId).catch(() => {});
+    }
   }
   return { marked: records.length };
 };
@@ -101,6 +107,37 @@ const getMyHistory = async (userId) => {
   const rate = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
 
   return { records: rows, stats: { total, present, late, absent, rate } };
+};
+
+// So'nggi 14 kunda 3+ sababsiz qoldirish bo'lsa ota-onaga ogohlantirish
+const notifyParentIfAbsenceThreshold = async (studentId, groupId) => {
+  const { rows: [student] } = await query(
+    `SELECT u.first_name, u.last_name, u.parent_telegram_chat_id,
+            g.name AS group_name
+     FROM users u
+     JOIN groups g ON g.id = $2
+     WHERE u.id = $1`,
+    [studentId, groupId]
+  );
+  if (!student?.parent_telegram_chat_id) return;
+
+  const { rows: [stats] } = await query(
+    `SELECT COUNT(*) FILTER (WHERE status = 'absent')::int AS absent_count
+     FROM attendance
+     WHERE user_id = $1 AND group_id = $2
+       AND date >= CURRENT_DATE - INTERVAL '14 days'`,
+    [studentId, groupId]
+  );
+
+  const absences = stats?.absent_count || 0;
+  if (absences < 3) return;
+
+  const text =
+    `⚠️ Diqqat! ${student.first_name} ${student.last_name} so'nggi 2 haftada ` +
+    `${absences} ta darsni qoldirdi (guruh: ${student.group_name}).\n\n` +
+    `Iltimos, sababini aniqlang va o'qituvchi bilan bog'laning.`;
+
+  await sendBotMessage(student.parent_telegram_chat_id, text);
 };
 
 module.exports = { getForDate, markBulk, getStudentHistory, getGroupStats, getMyHistory };

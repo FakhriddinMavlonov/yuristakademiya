@@ -39,4 +39,12 @@ const getHistory = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-module.exports = { generateQuiz, checkHomework, chat, getHistory };
+const explainAnswers = async (req, res, next) => {
+  try {
+    const { answers } = req.body;
+    const result = await svc.explainWrongAnswers({ answers });
+    res.json(result);
+  } catch (e) { next(e); }
+};
+
+module.exports = { generateQuiz, checkHomework, chat, getHistory, explainAnswers };

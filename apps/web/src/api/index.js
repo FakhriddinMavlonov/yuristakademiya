@@ -237,10 +237,11 @@ export const grades = {
 };
 
 export const ai = {
-  generateQuiz:  (data) => api.post('/ai/generate-quiz', data),
-  checkHomework: (data) => api.post('/ai/check-homework', data),
-  chat:          (data) => api.post('/ai/chat', data),
-  getHistory:    (lessonId) => api.get(`/ai/history${lessonId ? `?lesson_id=${lessonId}` : ''}`),
+  generateQuiz:    (data) => api.post('/ai/generate-quiz', data),
+  checkHomework:   (data) => api.post('/ai/check-homework', data),
+  chat:            (data) => api.post('/ai/chat', data),
+  getHistory:      (lessonId) => api.get(`/ai/history${lessonId ? `?lesson_id=${lessonId}` : ''}`),
+  explainAnswers:  (answers) => api.post('/ai/explain-answers', { answers }),
 };
 
 export const exams = {

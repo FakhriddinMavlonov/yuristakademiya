@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { tests as testsApi } from '../../api';
+import { tests as testsApi, ai as aiApi } from '../../api';
 import { SkeletonCard, SkeletonStatCards } from '../../components/ui/Loading';
 
 export default function StudentTest() {
@@ -17,6 +17,8 @@ export default function StudentTest() {
   const [timeLeft, setTimeLeft] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [currentQ, setCurrentQ] = useState(0);
+  const [aiExplanations, setAiExplanations] = useState(null);
+  const [loadingExplain, setLoadingExplain] = useState(false);
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -287,21 +289,53 @@ export default function StudentTest() {
 
         {result.showAnswers && result.answers?.length > 0 && (
           <div className="card" style={{ marginTop: 12 }}>
-            <div className="card-hd"><h3>{t('student.test.answersHeading')}</h3></div>
+            <div className="card-hd" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3>{t('student.test.answersHeading')}</h3>
+              {result.answers.some(a => !a.correct) && !aiExplanations && (
+                <button
+                  className="btn btn-ghost"
+                  style={{ fontSize: 11, padding: '5px 12px' }}
+                  disabled={loadingExplain}
+                  onClick={async () => {
+                    setLoadingExplain(true);
+                    try {
+                      const res = await aiApi.explainAnswers(result.answers);
+                      setAiExplanations(res.explanations || []);
+                    } catch {
+                      setAiExplanations([]);
+                    } finally {
+                      setLoadingExplain(false);
+                    }
+                  }}
+                >
+                  {loadingExplain ? '⏳ AI tahlil qilmoqda...' : '🤖 AI tushuntirish'}
+                </button>
+              )}
+            </div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {result.answers.map((a, i) => (
-                <div key={i} style={{
-                  padding: '10px 12px', borderRadius: 9,
-                  background: a.correct ? 'var(--green-bg)' : 'var(--red-bg)',
-                  border: `.5px solid ${a.correct ? 'rgba(5,150,105,.2)' : 'rgba(229,57,53,.2)'}`,
-                }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>{i + 1}. {a.question_text}</div>
-                  <div style={{ fontSize: 11, color: a.correct ? 'var(--green)' : 'var(--red)' }}>
-                    {a.correct ? '✓' : '✗'} {a.selected_option}
-                    {!a.correct && <span style={{ color: 'var(--muted)', marginLeft: 6 }}>· To'g'ri: {a.correct_option}</span>}
+              {result.answers.map((a, i) => {
+                const explanation = aiExplanations?.find(e =>
+                  e.question && a.question_text && e.question.includes(a.question_text.slice(0, 30))
+                ) || (aiExplanations ? aiExplanations[result.answers.filter(x => !x.correct).indexOf(a)] : null);
+                return (
+                  <div key={i} style={{
+                    padding: '10px 12px', borderRadius: 9,
+                    background: a.correct ? 'var(--green-bg)' : 'var(--red-bg)',
+                    border: `.5px solid ${a.correct ? 'rgba(5,150,105,.2)' : 'rgba(229,57,53,.2)'}`,
+                  }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>{i + 1}. {a.question_text}</div>
+                    <div style={{ fontSize: 11, color: a.correct ? 'var(--green)' : 'var(--red)' }}>
+                      {a.correct ? '✓' : '✗'} {a.selected_option}
+                      {!a.correct && <span style={{ color: 'var(--muted)', marginLeft: 6 }}>· To'g'ri: {a.correct_option}</span>}
+                    </div>
+                    {!a.correct && explanation?.explanation && (
+                      <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(255,255,255,0.5)', borderRadius: 6, fontSize: 11, color: 'var(--ink)', lineHeight: 1.6 }}>
+                        🤖 <strong>AI:</strong> {explanation.explanation}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

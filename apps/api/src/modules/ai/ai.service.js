@@ -204,4 +204,75 @@ async function getChatHistory(userId, lessonId = null) {
   };
 }
 
-module.exports = { generateQuiz, checkHomework, chat, getChatHistory };
+// Test natijasidagi noto'g'ri javoblarni AI tushuntiradi
+async function explainWrongAnswers({ answers }) {
+  if (!Array.isArray(answers)) throw new AppError('answers massivi kerak', 400);
+  const wrong = answers.filter(a => a.correct === false);
+  if (wrong.length === 0) return { explanations: [] };
+
+  const groq = getClient();
+
+  const questionsText = wrong.map((a, i) =>
+    `${i + 1}. Savol: ${a.question_text}\n` +
+    `   Siz tanladingiz: ${a.selected_option || '—'}\n` +
+    `   To'g'ri javob: ${a.correct_option}`
+  ).join('\n\n');
+
+  const chat = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    temperature: 0.5,
+    max_tokens: 2000,
+    messages: [
+      {
+        role: 'system',
+        content:
+          "Siz yuridik ta'lim sohasida AI tushuntiruvchisiz. " +
+          "Talabaning noto'g'ri javoblarini qisqacha va aniq tushuntiring. " +
+          "O'zbek tilida, yuridik terminlarga aniq izoh bering. " +
+          "FAQAT sof JSON formatida javob bering.",
+      },
+      {
+        role: 'user',
+        content:
+          `Talabaning noto'g'ri javoblari:\n\n${questionsText}\n\n` +
+          `Har bir savol uchun to'g'ri javob nima uchun to'g'ri ekanini 1-2 jumlada tushuntiring.\n\n` +
+          `Format:\n{"explanations":[{"question":"...","explanation":"..."}]}`,
+      },
+    ],
+  });
+
+  const raw = chat.choices[0].message.content || '';
+  let parsed;
+  try {
+    parsed = JSON.parse(extractJson(raw));
+  } catch {
+    throw new AppError("AI javobini tahlil qilib bo'lmadi. Qayta urinib ko'ring.", 500);
+  }
+
+  return { explanations: (parsed.explanations || []).slice(0, wrong.length) };
+}
+
+// Bot ichidan chaqiriladigan umumiy AI yordamchi (qisqa javob)
+async function quickReply(message) {
+  if (!message?.trim()) return "Savol kiriting.";
+  const groq = getClient();
+  const res = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    temperature: 0.6,
+    max_tokens: 512,
+    messages: [
+      {
+        role: 'system',
+        content:
+          "Siz Yurist Akademiya Telegram botidagi AI yordamchisiz. " +
+          "O'quvchining savoliga qisqa, aniq va foydali javob bering. " +
+          "Asosan yuridik ta'lim, huquq va o'qish masalalari bo'yicha yordam bering. " +
+          "O'zbek tilida javob bering.",
+      },
+      { role: 'user', content: message },
+    ],
+  });
+  return res.choices[0].message.content || "Javob berib bo'lmadi.";
+}
+
+module.exports = { generateQuiz, checkHomework, chat, getChatHistory, explainWrongAnswers, quickReply };

@@ -123,25 +123,75 @@ const runParentReportTick = async () => {
   }
 };
 
+// Bugungi offline dars jadvalini tekshirib talabalarni eslatadi (08:00 Toshkent = 03:00 UTC)
+const runScheduleReminderTick = async () => {
+  try {
+    const now = new Date();
+    const jsDay = now.getDay(); // 0=Yakshanba ... 6=Shanba
+
+    // Bugun dars bor bo'lgan slotlar va ulardagi talabalar
+    const { rows: slots } = await query(`
+      SELECT ss.group_id, ss.start_time, ss.end_time, ss.room,
+             g.name AS group_name,
+             u.first_name, u.last_name, u.telegram_chat_id
+      FROM schedule_slots ss
+      JOIN groups g ON g.id = ss.group_id
+      JOIN group_students gs ON gs.group_id = ss.group_id
+      JOIN users u ON u.id = gs.user_id
+      WHERE ss.weekday = $1
+        AND g.status = 'active'
+        AND u.telegram_chat_id IS NOT NULL
+    `, [jsDay]);
+
+    let sent = 0;
+    for (const slot of slots) {
+      const timeStr = `${slot.start_time.slice(0, 5)} – ${slot.end_time.slice(0, 5)}`;
+      const text =
+        `📅 Bugun dars bor!\n\n` +
+        `📚 Guruh: ${slot.group_name}\n` +
+        `🕐 Vaqt: ${timeStr}\n` +
+        `📍 Joy: ${slot.room || 'O\'quv markaz'}\n\n` +
+        `Tayyor bo'lib keling! 💪`;
+      const ok = await sendBotMessage(slot.telegram_chat_id, text);
+      if (ok) sent++;
+    }
+    console.log(`[schedule-reminder] → sent ${sent} reminders`);
+  } catch (e) {
+    console.error('[schedule-reminder] tick error:', e.message);
+  }
+};
+
 // Run both tasks once a day at ~22:00 Tashkent time (handles timezone via UTC math)
 // Tashkent is UTC+5, so 22:00 Tashkent = 17:00 UTC
 let dailyTimer = null;
 const startDailyScheduler = () => {
   const checkAndRun = async () => {
     const now = new Date();
-    // Use UTC hours; trigger window is 17:00-17:05 UTC = 22:00-22:05 Tashkent
-    if (now.getUTCHours() === 17 && now.getUTCMinutes() < 5) {
-      // Guard: only run once per day
+    const utcH = now.getUTCHours();
+    const utcM = now.getUTCMinutes();
+
+    // 03:00-03:05 UTC = 08:00 Toshkent — dars jadval eslatmasi
+    if (utcH === 3 && utcM < 5) {
+      const key = `sched_${now.toISOString().split('T')[0]}`;
+      if (global._lastSchedKey !== key) {
+        global._lastSchedKey = key;
+        await runScheduleReminderTick();
+      }
+    }
+
+    // 17:00-17:05 UTC = 22:00 Toshkent — davomat + ota-ona hisobot
+    if (utcH === 17 && utcM < 5) {
       const key = `daily_${now.toISOString().split('T')[0]}`;
-      if (global._lastDailyKey === key) return;
-      global._lastDailyKey = key;
-      await runAttendanceTick();
-      await runParentReportTick();
+      if (global._lastDailyKey !== key) {
+        global._lastDailyKey = key;
+        await runAttendanceTick();
+        await runParentReportTick();
+      }
     }
   };
   // Check every 5 minutes
   dailyTimer = setInterval(checkAndRun, 5 * 60 * 1000);
-  console.log('✅ Daily scheduler started (22:00 Tashkent → attendance + parent reports)');
+  console.log('✅ Daily scheduler started (08:00 jadval + 22:00 davomat+hisobot, Toshkent)');
   return dailyTimer;
 };
 
